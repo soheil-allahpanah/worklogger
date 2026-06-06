@@ -1,0 +1,10 @@
+[workspace]
+members = [
+    "core",
+    "common",
+    "use_cases",
+    "infrastructure",
+    "tui",
+    "api"
+]
+resolver = "2"

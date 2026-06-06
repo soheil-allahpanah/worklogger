@@ -1,0 +1,9 @@
+[package]
+name = "api"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+domain = { path = "../core", package = "core" }
+use_cases = { path = "../use_cases" }
+infrastructure = { path = "../infrastructure" }

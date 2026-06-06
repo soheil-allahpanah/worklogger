@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO worklogs (\n                id,\n                datetime,\n                duration,\n                tags,\n                description,\n                created_at,\n                updated_at,\n                deleted_at\n            )\n            VALUES ($1, $2, make_interval(secs => $3), $4, $5, $6, $7, $8)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Float8",
+        "TextArray",
+        "Text",
+        "Timestamptz",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "635094ff9f5cf5a413ab934f2b61b34581be9a855622fe9e9fa1239e30a63ee5"
+}

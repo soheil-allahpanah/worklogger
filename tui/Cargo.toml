@@ -1,0 +1,18 @@
+[package]
+name = "tui"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+chrono-tz = "0.10"
+common = { path = "../common" }
+crossterm = "0.28"
+domain = { path = "../core", package = "core" }
+jalali-rs = "0.1.1"
+ratatui = { version = "0.29", default-features = false, features = ["crossterm"] }
+shlex = "1"
+tokio = { version = "1", features = ["rt-multi-thread"] }
+use_cases = { path = "../use_cases" }
+infrastructure = { path = "../infrastructure" }
+uuid = { version = "1", features = ["v4"] }

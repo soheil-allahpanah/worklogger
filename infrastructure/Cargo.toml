@@ -1,0 +1,13 @@
+[package]
+name = "infrastructure"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+common = { path = "../common" }
+domain = { path = "../core", package = "core" }
+sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "chrono", "uuid", "macros", "migrate"] }
+thiserror = "2"
+tokio = { version = "1", features = ["sync"] }
+uuid = { version = "1", features = ["v4"] }

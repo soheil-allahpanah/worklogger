@@ -1,0 +1,74 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                id,\n                datetime,\n                EXTRACT(EPOCH FROM duration)::bigint AS \"duration_secs!\",\n                tags,\n                description,\n                created_at,\n                updated_at,\n                deleted_at\n            FROM worklogs\n            WHERE deleted_at IS NULL\n              AND ($1::uuid[] IS NULL OR id = ANY($1))\n              AND ($2::uuid[] IS NULL OR NOT (id = ANY($2)))\n              AND ($3::text[] IS NULL OR tags && $3)\n              AND ($4::text[] IS NULL OR NOT (tags && $4))\n              AND ($5::text IS NULL OR description ILIKE '%' || $5 || '%')\n              AND ($6::date IS NULL OR datetime::date >= $6)\n              AND ($7::date IS NULL OR datetime::date <= $7)\n              AND ($8::bigint IS NULL OR EXTRACT(EPOCH FROM duration)::bigint >= $8)\n              AND ($9::bigint IS NULL OR EXTRACT(EPOCH FROM duration)::bigint <= $9)\n            ORDER BY datetime DESC\n            LIMIT $10\n            OFFSET $11\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "datetime",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 2,
+        "name": "duration_secs!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "tags",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 4,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "deleted_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "UuidArray",
+        "TextArray",
+        "TextArray",
+        "Text",
+        "Date",
+        "Date",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      false,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "06c862cf20c376871f91846a96fd8c253442b6fce6a669677b41d93783ced97e"
+}
