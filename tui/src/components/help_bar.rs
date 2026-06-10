@@ -76,12 +76,20 @@ pub fn view<R: WorklogRepository>(frame: &mut Frame, app: &App<R>, area: Rect) {
         ],
         Mode::DeleteModal => &[
             Hint {
-                key: "Enter",
-                action: "CONFIRM",
+                key: "y",
+                action: "YES",
             },
             Hint {
-                key: "Esc",
-                action: "CANCEL",
+                key: "n",
+                action: "NO",
+            },
+            Hint {
+                key: "Tab",
+                action: "SWITCH",
+            },
+            Hint {
+                key: "Enter",
+                action: "SELECT",
             },
         ],
         Mode::OpenModal => &[Hint {

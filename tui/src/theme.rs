@@ -36,6 +36,18 @@ pub fn tag_color(tag: &str) -> Color {
     TAG_PALETTE[(hash as usize) % TAG_PALETTE.len()]
 }
 
+/// Returns a `Rect` centered within `area` with an exact character size (clamped to `area`).
+pub fn centered_rect_chars(width: u16, height: u16, area: Rect) -> Rect {
+    let width = width.min(area.width).max(1);
+    let height = height.min(area.height).max(1);
+    Rect {
+        x: area.x + area.width.saturating_sub(width) / 2,
+        y: area.y + area.height.saturating_sub(height) / 2,
+        width,
+        height,
+    }
+}
+
 /// Returns a `Rect` centered within `area`, sized as a percentage of it.
 pub fn centered_rect(percent_x: u16, percent_y: u16, area: Rect) -> Rect {
     let popup_layout = Layout::default()

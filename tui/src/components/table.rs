@@ -16,7 +16,8 @@ use ratatui::{
 use use_cases::GetWorklogCommand;
 
 use crate::app::{worklog_to_row, App, Mode};
-use crate::dialogs::add;
+use crate::dialogs::{add, delete};
+use crate::format::styled_tags_line;
 use crate::message::Outcome;
 use crate::theme;
 
@@ -86,7 +87,7 @@ pub async fn update<R: WorklogRepository>(
         }
         Msg::OpenDelete => {
             if let Some(id) = selected_id(app) {
-                app.delete.target = Some(id);
+                app.delete = delete::Model::confirm(id);
                 app.mode = Mode::DeleteModal;
                 app.cursor_visible = true;
             }
@@ -152,25 +153,6 @@ fn pad_cell(text: &str, width: u16) -> String {
     let clipped = truncate(text, max);
     let pad = width as usize - 1 - clipped.chars().count();
     format!(" {}{}", clipped, " ".repeat(pad))
-}
-
-fn styled_tags(tags: &str) -> Line<'_> {
-    let parts: Vec<&str> = tags.split(',').map(str::trim).filter(|s| !s.is_empty()).collect();
-    if parts.is_empty() {
-        return Line::from(Span::raw(" "));
-    }
-
-    let mut spans = vec![Span::raw(" ")];
-    for (i, tag) in parts.iter().enumerate() {
-        if i > 0 {
-            spans.push(Span::styled(", ", Style::default().fg(theme::MUTED)));
-        }
-        spans.push(Span::styled(
-            *tag,
-            Style::default().fg(theme::tag_color(tag)).add_modifier(Modifier::BOLD),
-        ));
-    }
-    Line::from(spans)
 }
 
 struct BorderedTable<'a> {
@@ -245,7 +227,7 @@ impl Widget for BorderedTable<'_> {
             cx += cols[2] + 1;
             draw_vline(buf, cx - 1, row_y, border);
 
-            write_tag_line(buf, cx, row_y, cols[3], &styled_tags(&row.tags), base.bg);
+            write_tag_line(buf, cx, row_y, cols[3], &styled_tags_line(&row.tags), base.bg);
         }
     }
 }

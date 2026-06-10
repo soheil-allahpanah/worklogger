@@ -2,6 +2,7 @@
 
 use std::io;
 
+use chrono::Utc;
 use crossterm::event::{KeyCode, KeyEvent};
 use domain::traits::WorklogRepository;
 use ratatui::{
@@ -14,7 +15,7 @@ use ratatui::{
 use use_cases::CreateWorklogCommand;
 
 use crate::app::{App, Mode};
-use crate::format::parse_duration_input;
+use crate::format::{jalali_date_string, parse_duration_input};
 use crate::message::Outcome;
 use crate::theme;
 
@@ -32,18 +33,18 @@ impl Field {
     fn next(self) -> Self {
         match self {
             Self::Date => Self::Duration,
-            Self::Duration => Self::Description,
-            Self::Description => Self::Tags,
-            Self::Tags => Self::Date,
+            Self::Duration => Self::Tags,
+            Self::Tags => Self::Description,
+            Self::Description => Self::Date,
         }
     }
 
     fn previous(self) -> Self {
         match self {
-            Self::Date => Self::Tags,
+            Self::Date => Self::Description,
             Self::Duration => Self::Date,
-            Self::Description => Self::Duration,
-            Self::Tags => Self::Description,
+            Self::Tags => Self::Duration,
+            Self::Description => Self::Tags,
         }
     }
 }
@@ -59,10 +60,11 @@ pub struct Model {
 }
 
 impl Model {
-    /// A fresh form with the first field focused.
+    /// A fresh form with the first field focused and today's Jalali date pre-filled.
     pub fn fresh() -> Self {
         Self {
-            focused: Field::Date,
+            date: jalali_date_string(Utc::now()),
+            focused: Field::Duration,
             ..Default::default()
         }
     }
@@ -170,7 +172,7 @@ async fn submit<R: WorklogRepository>(app: &mut App<R>) -> io::Result<bool> {
 
 /// Renders the add dialog over the current frame.
 pub fn view<R: WorklogRepository>(frame: &mut Frame, app: &App<R>) {
-    let area = theme::centered_rect(62, 50, frame.area());
+    let area = theme::centered_rect(45, 37, frame.area());
     let block = Block::default()
         .title(" Adding New Worklog ")
         .title_alignment(Alignment::Center)
@@ -183,7 +185,7 @@ pub fn view<R: WorklogRepository>(frame: &mut Frame, app: &App<R>) {
 
     frame.render_widget(block, area);
 
-    let inner = theme::centered_rect(58, 40, frame.area());
+    let inner = theme::centered_rect(43, 37, frame.area());
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .margin(2)
@@ -192,15 +194,14 @@ pub fn view<R: WorklogRepository>(frame: &mut Frame, app: &App<R>) {
             Constraint::Length(3),
             Constraint::Length(3),
             Constraint::Length(3),
-            Constraint::Length(2),
         ])
         .split(inner);
 
     let fields = [
         (Field::Date, "Date (Jalali YYYY/MM/DD)", &app.add.date),
         (Field::Duration, "Duration (e.g. 2h30m)", &app.add.duration),
-        (Field::Description, "Description", &app.add.description),
         (Field::Tags, "Tags (comma-separated)", &app.add.tags),
+        (Field::Description, "Description", &app.add.description),
     ];
 
     for (i, (field, label, value)) in fields.iter().enumerate() {
@@ -237,14 +238,4 @@ pub fn view<R: WorklogRepository>(frame: &mut Frame, app: &App<R>) {
         );
     }
 
-    let help = Paragraph::new(Line::from(vec![
-        Span::styled("Tab", Style::default().fg(theme::BLUE)),
-        Span::styled(" next · ", Style::default().fg(theme::MUTED)),
-        Span::styled("Enter", Style::default().fg(theme::EMERALD)),
-        Span::styled(" save · ", Style::default().fg(theme::MUTED)),
-        Span::styled("Esc", Style::default().fg(theme::BLUE)),
-        Span::styled(" cancel", Style::default().fg(theme::MUTED)),
-    ]))
-    .alignment(Alignment::Center);
-    frame.render_widget(help, chunks[4]);
 }
