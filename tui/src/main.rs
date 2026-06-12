@@ -1,6 +1,7 @@
 mod app;
 mod components;
 mod dialogs;
+mod export;
 mod format;
 mod message;
 mod search_dsl;
@@ -17,7 +18,10 @@ use crossterm::{
 };
 use infrastructure::postgres::{connect, PostgresWorklogRepository};
 use ratatui::prelude::*;
-use use_cases::{CreateWorklogUseCase, FilterWorklogsUsecase, DeleteWorklogUseCase, GetWorklogUseCase};
+use use_cases::{
+    CreateWorklogUseCase, DeleteWorklogUseCase, ExportWorklogsUsecase, FilterWorklogsUsecase,
+    GetWorklogUseCase,
+};
 
 type TuiApp = App<Arc<PostgresWorklogRepository>>;
 
@@ -42,9 +46,17 @@ async fn wiringup() -> io::Result<TuiApp> {
     let repo = Arc::new(PostgresWorklogRepository::new(pool));
     let create_worklog = CreateWorklogUseCase::new(Arc::clone(&repo));
     let filter_worklogs = FilterWorklogsUsecase::new(Arc::clone(&repo));
+    let export_worklogs = ExportWorklogsUsecase::new(Arc::clone(&repo));
     let delete_worklog = DeleteWorklogUseCase::new(Arc::clone(&repo));
     let get_worklog = GetWorklogUseCase::new(Arc::clone(&repo));
-    App::new(create_worklog, filter_worklogs, delete_worklog, get_worklog).await
+    App::new(
+        create_worklog,
+        filter_worklogs,
+        export_worklogs,
+        delete_worklog,
+        get_worklog,
+    )
+    .await
 }
 
 fn setup_terminal() -> io::Result<Terminal<CrosstermBackend<Stdout>>> {

@@ -46,6 +46,10 @@ pub fn view<R: WorklogRepository>(frame: &mut Frame, app: &App<R>, area: Rect) {
                 action: "OPEN",
             },
             Hint {
+                key: "e",
+                action: "EXPORT",
+            },
+            Hint {
                 key: "j/k",
                 action: "NAVIGATE",
             },

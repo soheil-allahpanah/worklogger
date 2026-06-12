@@ -15,12 +15,14 @@ use domain::traits::WorklogRepository;
 use ratatui::widgets::TableState;
 use tokio::runtime::Handle;
 use use_cases::{
-    CreateWorklogUseCase, DeleteWorklogUseCase, FilterWorklogsUsecase, GetWorklogUseCase,
+    CreateWorklogUseCase, DeleteWorklogUseCase, ExportWorklogsUsecase, FilterWorklogsUsecase,
+    GetWorklogUseCase,
 };
 use uuid::Uuid;
 
 use crate::components::{search_bar, table};
 use crate::dialogs::{add, delete, open};
+use crate::export::{export_dir, write_export_file};
 use crate::format::{format_duration, jalali_date_string};
 use crate::message::{Msg, Outcome};
 use crate::search_dsl::parse_search_input;
@@ -51,6 +53,7 @@ pub struct App<R: WorklogRepository> {
     // Effect runners (use cases).
     pub create_worklog_usecase: CreateWorklogUseCase<R>,
     pub filter_worklogs_usecase: FilterWorklogsUsecase<R>,
+    pub export_worklogs_usecase: ExportWorklogsUsecase<R>,
     pub delete_worklog_usecase: DeleteWorklogUseCase<R>,
     pub get_worklog_usecase: GetWorklogUseCase<R>,
 
@@ -75,12 +78,14 @@ impl<R: WorklogRepository> App<R> {
     pub async fn new(
         create_worklog_usecase: CreateWorklogUseCase<R>,
         filter_worklogs_usecase: FilterWorklogsUsecase<R>,
+        export_worklogs_usecase: ExportWorklogsUsecase<R>,
         delete_worklog_usecase: DeleteWorklogUseCase<R>,
         get_worklog_usecase: GetWorklogUseCase<R>,
     ) -> io::Result<Self> {
         let mut app = Self {
             create_worklog_usecase,
             filter_worklogs_usecase,
+            export_worklogs_usecase,
             delete_worklog_usecase,
             get_worklog_usecase,
             mode: Mode::Normal,
@@ -141,6 +146,31 @@ impl<R: WorklogRepository> App<R> {
 
     pub async fn reload_worklogs(&mut self) -> io::Result<()> {
         self.apply_search().await
+    }
+
+    /// Exports the current search results to an Excel file under [`export_dir`].
+    pub async fn export_search_results(&mut self) -> io::Result<()> {
+        let mut command = parse_search_input(&self.search_input);
+        if let Err(errors) = command.validate() {
+            self.set_status(format!("Filter: {}", errors.join("; ")), 4);
+            return Ok(());
+        }
+
+        match self.export_worklogs_usecase.execute(command).await {
+            Ok(file) => {
+                let path = write_export_file(&export_dir(), &file.filename, &file.bytes)?;
+                self.set_status(
+                    format!(
+                        "Exported {} worklog(s) to {}",
+                        file.row_count,
+                        path.display()
+                    ),
+                    4,
+                );
+            }
+            Err(err) => self.set_status(format!("{err}"), 4),
+        }
+        Ok(())
     }
 
     /// Shows a transient status message that clears after `seconds`.

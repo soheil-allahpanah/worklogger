@@ -11,6 +11,8 @@ pub enum UseCaseError {
     Domain(#[from] DomainError),
     #[error(transparent)]
     Repository(#[from] RepositoryError),
+    #[error("export failed: {0}")]
+    Export(String),
 }
 
 

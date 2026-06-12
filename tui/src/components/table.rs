@@ -45,6 +45,7 @@ pub enum Msg {
     SelectNext,
     SelectPrev,
     ApplySearch,
+    Export,
     OpenSearch,
     OpenAdd,
     OpenDelete,
@@ -59,6 +60,7 @@ pub fn from_key(key: KeyEvent) -> Option<Msg> {
         KeyCode::Char('d') => Some(Msg::OpenDelete),
         KeyCode::Char('o') => Some(Msg::OpenDetail),
         KeyCode::Char('n') | KeyCode::Char('a') => Some(Msg::OpenAdd),
+        KeyCode::Char('e') => Some(Msg::Export),
         KeyCode::Down | KeyCode::Char('j') => Some(Msg::SelectNext),
         KeyCode::Up | KeyCode::Char('k') => Some(Msg::SelectPrev),
         KeyCode::Enter => Some(Msg::ApplySearch),
@@ -76,6 +78,7 @@ pub async fn update<R: WorklogRepository>(
         Msg::SelectNext => select_next(app),
         Msg::SelectPrev => select_prev(app),
         Msg::ApplySearch => app.apply_search().await?,
+        Msg::Export => app.export_search_results().await?,
         Msg::OpenSearch => {
             app.mode = Mode::Search;
             app.cursor_visible = true;
