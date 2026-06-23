@@ -42,14 +42,16 @@ Built as a Rust workspace with a small hexagonal architecture: domain logic stay
 └─────────────┘
 ```
 
-| Crate | Role |
-|-------|------|
-| [`core`](core/) | Domain entities (`Worklog`), value objects, repository traits |
-| [`common`](common/) | Shared filter types and pagination helpers |
-| [`use_cases`](use_cases/) | Application commands, validation, use case orchestration, Excel export |
-| [`infrastructure`](infrastructure/) | PostgreSQL repository via `sqlx` |
-| [`tui`](tui/) | Ratatui terminal UI |
-| [`api`](api/) | HTTP API (Axum) — create, filter, delete, export |
+
+| Crate                               | Role                                                                   |
+| ----------------------------------- | ---------------------------------------------------------------------- |
+| `[core](core/)`                     | Domain entities (`Worklog`), value objects, repository traits          |
+| `[common](common/)`                 | Shared filter types and pagination helpers                             |
+| `[use_cases](use_cases/)`           | Application commands, validation, use case orchestration, Excel export |
+| `[infrastructure](infrastructure/)` | PostgreSQL repository via `sqlx`                                       |
+| `[tui](tui/)`                       | Ratatui terminal UI                                                    |
+| `[api](api/)`                       | HTTP API (Axum) — create, filter, delete, export                       |
+
 
 ## Prerequisites
 
@@ -128,11 +130,13 @@ cargo build -p api --release
 
 Optional environment variables:
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `HOST` | `127.0.0.1` | API bind address |
-| `PORT` | `3000` | API listen port |
+
+| Variable                | Default      | Description                |
+| ----------------------- | ------------ | -------------------------- |
+| `HOST`                  | `127.0.0.1`  | API bind address           |
+| `PORT`                  | `3000`       | API listen port            |
 | `WORKLOGGER_EXPORT_DIR` | `~/Download` | TUI Excel export directory |
+
 
 ## TUI guide
 
@@ -140,29 +144,31 @@ Optional environment variables:
 
 ```
         WORK LOGGER v0.1.0 [Main View | Logged: N entries]
-┌──────────┬──────────┬─────────────────────┬──────────────────┐
-│ Date     │ Duration │ Description         │ Tags             │
-└──────────┴──────────┴─────────────────────┴──────────────────┘
-│ ...      │ ...      │ ...                 │ rust, meeting    │
-│ ...      │ ...      │ ...                 │ dev              │
+┌──────────┬──────────┬─────────────────────┬──────────────────────────────────┐
+│ Date     │ Duration │ Description         │ Tags                             │
+└──────────┴──────────┴─────────────────────┴──────────────────────────────────┘
+│ ...      │ ...      │ ...                 │ rust, meeting                    │
+│ ...      │ ...      │ ...                 │ dev                              │
 
-┌───────────────────────────────────────────────────────────────┐
-│ / tag:rust desc:"meeting"                                     │
-└───────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ / tag:rust desc:"meeting"                                                    │
+└──────────────────────────────────────────────────────────────────────────────┘
   q  QUIT  |  /  SEARCH  |  n  ADD  |  d  DELETE  |  e  EXPORT  |  j/k  NAVIGATE
 ```
 
 ### Keybindings
 
-| Key | Action |
-|-----|--------|
-| `j` / `k` or `↓` / `↑` | Move selection |
-| `/` | Focus search bar |
-| `n` or `a` | Add a new worklog |
-| `o` | Open selected entry (detail view) |
-| `d` | Delete selected entry |
-| `e` | Export current search results to Excel |
-| `q` or `Ctrl+c` | Quit |
+
+| Key                    | Action                                 |
+| ---------------------- | -------------------------------------- |
+| `j` / `k` or `↓` / `↑` | Move selection                         |
+| `/`                    | Focus search bar                       |
+| `n` or `a`             | Add a new worklog                      |
+| `o`                    | Open selected entry (detail view)      |
+| `d`                    | Delete selected entry                  |
+| `e`                    | Export current search results to Excel |
+| `q` or `Ctrl+c`        | Quit                                   |
+
 
 **Search mode:** `Enter` applies the filter, `Esc` cancels.
 
@@ -174,27 +180,31 @@ Optional environment variables:
 
 ### Adding an entry
 
-| Field | Format | Notes |
-|-------|--------|-------|
-| Date | `YYYY/MM/DD` or `YYYY-MM-DD` | Jalali calendar; leave blank for today (Tehran) |
-| Duration | `2h30m`, `45m`, `90s`, or seconds | Must be > 0 and < 24 h |
-| Description | free text | Required |
-| Tags | comma-separated | At least one tag required |
+
+| Field       | Format                            | Notes                                           |
+| ----------- | --------------------------------- | ----------------------------------------------- |
+| Date        | `YYYY/MM/DD` or `YYYY-MM-DD`      | Jalali calendar; leave blank for today (Tehran) |
+| Duration    | `2h30m`, `45m`, `90s`, or seconds | Must be > 0 and < 24 h                          |
+| Description | free text                         | Required                                        |
+| Tags        | comma-separated                   | At least one tag required                       |
+
 
 ### Search DSL
 
 Press `/` to edit the search bar. Tokens are space-separated; use quotes for values with spaces (parsed via `shlex`).
 
-| Token | Example | Meaning |
-|-------|---------|---------|
-| `tag:` | `tag:rust,dev` | Include entries with any of these tags |
-| `-tag:` | `-tag:meeting` | Exclude these tags |
-| `desc:` | `desc:"fix bug"` | Description contains text |
-| `date:` | `date:1403/01/01..1403/01/31` | Jalali date range (inclusive) |
-| `date:` | `date:>=1403/01/01` | On or after date |
-| `date:` | `date:<=1403/01/31` | On or before date |
-| `duration:` | `duration:1h..4h` | Duration range |
-| `id:` | `id:550e8400-e29b-...` | Filter by UUID |
+
+| Token       | Example                       | Meaning                                |
+| ----------- | ----------------------------- | -------------------------------------- |
+| `tag:`      | `tag:rust,dev`                | Include entries with any of these tags |
+| `-tag:`     | `-tag:meeting`                | Exclude these tags                     |
+| `desc:`     | `desc:"fix bug"`              | Description contains text              |
+| `date:`     | `date:1403/01/01..1403/01/31` | Jalali date range (inclusive)          |
+| `date:`     | `date:>=1403/01/01`           | On or after date                       |
+| `date:`     | `date:<=1403/01/31`           | On or before date                      |
+| `duration:` | `duration:1h..4h`             | Duration range                         |
+| `id:`       | `id:550e8400-e29b-...`        | Filter by UUID                         |
+
 
 Example:
 
@@ -234,10 +244,12 @@ cargo build -p api --release
 
 Optional environment variables:
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `HOST` | `127.0.0.1` | Bind address |
-| `PORT` | `3000` | Listen port |
+
+| Variable | Default     | Description  |
+| -------- | ----------- | ------------ |
+| `HOST`   | `127.0.0.1` | Bind address |
+| `PORT`   | `3000`      | Listen port  |
+
 
 ### Docker
 
@@ -270,15 +282,17 @@ Inside a container, `localhost` refers to that container itself — use the data
 
 ### Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/health` | Health check |
-| `POST` | `/worklogs` | Create a worklog |
-| `DELETE` | `/worklogs/{id}` | Soft-delete a worklog |
-| `GET` | `/worklogs` | Filter via query parameters |
-| `POST` | `/worklogs/filter` | Filter via JSON body |
-| `GET` | `/worklogs/export` | Export to XLSX via query parameters |
-| `POST` | `/worklogs/export` | Export to XLSX via JSON body |
+
+| Method   | Path               | Description                         |
+| -------- | ------------------ | ----------------------------------- |
+| `GET`    | `/health`          | Health check                        |
+| `POST`   | `/worklogs`        | Create a worklog                    |
+| `DELETE` | `/worklogs/{id}`   | Soft-delete a worklog               |
+| `GET`    | `/worklogs`        | Filter via query parameters         |
+| `POST`   | `/worklogs/filter` | Filter via JSON body                |
+| `GET`    | `/worklogs/export` | Export to XLSX via query parameters |
+| `POST`   | `/worklogs/export` | Export to XLSX via JSON body        |
+
 
 Errors return JSON: `{ "error": "...", "details": [...] }` with `400` for validation failures, `404` when a worklog is not found, and `500` for internal errors.
 
@@ -295,12 +309,14 @@ curl -X POST http://127.0.0.1:3000/worklogs \
   }'
 ```
 
-| Field | Type | Notes |
-|-------|------|-------|
-| `jalali_date` | string, optional | `YYYY/MM/DD` or `YYYY-MM-DD`; defaults to today (Tehran) |
-| `duration_secs` | number | Must be > 0 and < 86_400 |
-| `tags` | string array | At least one tag required |
-| `description` | string | Required |
+
+| Field           | Type             | Notes                                                    |
+| --------------- | ---------------- | -------------------------------------------------------- |
+| `jalali_date`   | string, optional | `YYYY/MM/DD` or `YYYY-MM-DD`; defaults to today (Tehran) |
+| `duration_secs` | number           | Must be > 0 and < 86_400                                 |
+| `tags`          | string array     | At least one tag required                                |
+| `description`   | string           | Required                                                 |
+
 
 Response (`201 Created`):
 
@@ -312,19 +328,21 @@ Response (`201 Created`):
 
 **Query parameters** (`GET /worklogs`):
 
-| Parameter | Example | Meaning |
-|-----------|---------|---------|
-| `tags` | `rust,dev` | Include any of these tags |
-| `exclude_tags` | `meeting` | Exclude these tags |
-| `ids` | `uuid1,uuid2` | Include these IDs |
-| `exclude_ids` | `uuid3` | Exclude these IDs |
-| `description` | `fix bug` | Description contains text |
-| `date_from` | `1403/01/01` | Jalali date on or after |
-| `date_to` | `1403/01/31` | Jalali date on or before |
-| `duration_from` | `1h` | Minimum duration (`xhymzs`) |
-| `duration_to` | `4h` | Maximum duration |
-| `page` | `1` | Page number (default `1`) |
-| `size` | `20` | Page size (default `20`) |
+
+| Parameter       | Example       | Meaning                     |
+| --------------- | ------------- | --------------------------- |
+| `tags`          | `rust,dev`    | Include any of these tags   |
+| `exclude_tags`  | `meeting`     | Exclude these tags          |
+| `ids`           | `uuid1,uuid2` | Include these IDs           |
+| `exclude_ids`   | `uuid3`       | Exclude these IDs           |
+| `description`   | `fix bug`     | Description contains text   |
+| `date_from`     | `1403/01/01`  | Jalali date on or after     |
+| `date_to`       | `1403/01/31`  | Jalali date on or before    |
+| `duration_from` | `1h`          | Minimum duration (`xhymzs`) |
+| `duration_to`   | `4h`          | Maximum duration            |
+| `page`          | `1`           | Page number (default `1`)   |
+| `size`          | `20`          | Page size (default `20`)    |
+
 
 ```bash
 curl 'http://127.0.0.1:3000/worklogs?tags=rust&page=1&size=20'

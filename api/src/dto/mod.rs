@@ -1,5 +1,7 @@
+mod filter_query;
 mod requests;
 mod responses;
 
-pub use requests::CreateWorklogRequest;
-pub use responses::{CreateWorklogJson, WorklogPageJson};
+pub use filter_query::{FilterQuery, DEFAULT_PAGE_SIZE};
+pub use requests::{CreateWorklogRequest, FilterWorklogsRequest};
+pub use responses::{CreateWorklogJson, WorklogJson, WorklogPageJson};

@@ -1,5 +1,4 @@
 use serde::Deserialize;
-use use_cases::CreateWorklogCommand;
 
 #[derive(Debug, Deserialize)]
 pub struct CreateWorklogRequest {
@@ -9,15 +8,4 @@ pub struct CreateWorklogRequest {
     pub duration_secs: u64,
     pub tags: Vec<String>,
     pub description: String,
-}
-
-impl From<CreateWorklogRequest> for CreateWorklogCommand {
-    fn from(value: CreateWorklogRequest) -> Self {
-        Self {
-            jalali_date: value.jalali_date,
-            duration_secs: value.duration_secs,
-            tags: value.tags,
-            description: value.description,
-        }
-    }
 }
