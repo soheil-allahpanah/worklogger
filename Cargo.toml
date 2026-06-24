@@ -5,6 +5,7 @@ members = [
     "use_cases",
     "infrastructure",
     "tui",
-    "api"
+    "api",
+    "sdk"
 ]
 resolver = "2"

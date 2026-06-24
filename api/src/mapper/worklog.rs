@@ -7,6 +7,7 @@ pub fn worklog_to_json(worklog: Worklog) -> WorklogJson {
     let duration_secs = worklog.duration().as_std().as_secs();
     WorklogJson {
         id: worklog.id().to_string(),
+        user_id: worklog.user_id().to_string(),
         datetime: worklog.datetime().as_datetime(),
         jalali_date: jalali_date_string(worklog.datetime().as_datetime()),
         duration_secs,

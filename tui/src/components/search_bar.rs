@@ -4,7 +4,6 @@
 use std::io;
 
 use crossterm::event::{KeyCode, KeyEvent};
-use domain::traits::WorklogRepository;
 use ratatui::{
     layout::Rect,
     style::{Style, Stylize},
@@ -38,10 +37,7 @@ pub fn from_key(key: KeyEvent) -> Option<Msg> {
 }
 
 /// Applies a message to the model, running effects as needed.
-pub async fn update<R: WorklogRepository>(
-    app: &mut App<R>,
-    msg: Msg,
-) -> io::Result<Outcome> {
+pub async fn update(app: &mut App, msg: Msg) -> io::Result<Outcome> {
     match msg {
         Msg::Cancel => app.mode = Mode::Normal,
         Msg::Submit => {
@@ -57,7 +53,7 @@ pub async fn update<R: WorklogRepository>(
 }
 
 /// Renders the search bar into `area`.
-pub fn view<R: WorklogRepository>(frame: &mut Frame, app: &App<R>, area: Rect) {
+pub fn view(frame: &mut Frame, app: &App, area: Rect) {
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Plain)

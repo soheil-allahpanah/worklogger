@@ -9,6 +9,7 @@ pub struct CreateWorklogJson {
 #[derive(Debug, Serialize)]
 pub struct WorklogJson {
     pub id: String,
+    pub user_id: String,
     pub datetime: DateTime<Utc>,
     pub jalali_date: String,
     pub duration_secs: u64,

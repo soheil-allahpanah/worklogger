@@ -3,7 +3,6 @@
 use std::io;
 
 use crossterm::event::{KeyCode, KeyEvent};
-use domain::traits::WorklogRepository;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
@@ -11,10 +10,10 @@ use ratatui::{
     widgets::{block::Position, Block, BorderType, Borders, Paragraph},
     Frame,
 };
-use use_cases::DeleteWorklogCommand;
+use sdk::DeleteWorklogCommand;
 use uuid::Uuid;
 
-use crate::app::{App, Mode};
+use crate::app::{command_user_id, App, Mode};
 use crate::message::Outcome;
 use crate::theme;
 
@@ -80,11 +79,11 @@ pub fn from_key(key: KeyEvent) -> Option<Msg> {
     }
 }
 
-async fn delete_target<R: WorklogRepository>(app: &mut App<R>) -> io::Result<()> {
+async fn delete_target(app: &mut App) -> io::Result<()> {
     if let Some(id) = app.delete.target {
-        app.delete_worklog_usecase
-            .execute(DeleteWorklogCommand {
-                user_id: app.user_id,
+        app.client
+            .delete_worklog(DeleteWorklogCommand {
+                user_id: command_user_id(),
                 id,
             })
             .await
@@ -98,10 +97,7 @@ async fn delete_target<R: WorklogRepository>(app: &mut App<R>) -> io::Result<()>
 }
 
 /// Applies a message to the model, running effects as needed.
-pub async fn update<R: WorklogRepository>(
-    app: &mut App<R>,
-    msg: Msg,
-) -> io::Result<Outcome> {
+pub async fn update(app: &mut App, msg: Msg) -> io::Result<Outcome> {
     match msg {
         Msg::FocusNext => app.delete.choice = app.delete.choice.next(),
         Msg::FocusPrev => app.delete.choice = app.delete.choice.previous(),
@@ -117,7 +113,7 @@ pub async fn update<R: WorklogRepository>(
 
 
 /// Renders the delete confirmation dialog over the current frame.
-pub fn view<R: WorklogRepository>(frame: &mut Frame, app: &App<R>) {
+pub fn view(frame: &mut Frame, app: &App) {
     let area = theme::centered_rect(40, 22, frame.area());
     let block = Block::default()
         .title(" Deleting Worklog ")

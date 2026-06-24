@@ -11,15 +11,10 @@ use std::time::{Duration, Instant};
 
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use domain::entities::Worklog;
-use domain::bootstrap::legacy_user_id;
-use domain::traits::WorklogRepository;
 use domain::value_objects::UserId;
 use ratatui::widgets::TableState;
+use sdk::{SdkError, WorkloggerClient};
 use tokio::runtime::Handle;
-use use_cases::{
-    CreateWorklogUseCase, DeleteWorklogUseCase, ExportWorklogsUsecase, FilterWorklogsUsecase,
-    GetWorklogUseCase,
-};
 use uuid::Uuid;
 
 use crate::components::{search_bar, table};
@@ -50,16 +45,14 @@ pub struct WorklogRow {
     pub tags: String,
 }
 
-/// The whole application model.
-pub struct App<R: WorklogRepository> {
-    // Effect runners (use cases).
-    pub create_worklog_usecase: CreateWorklogUseCase<R>,
-    pub filter_worklogs_usecase: FilterWorklogsUsecase<R>,
-    pub export_worklogs_usecase: ExportWorklogsUsecase<R>,
-    pub delete_worklog_usecase: DeleteWorklogUseCase<R>,
-    pub get_worklog_usecase: GetWorklogUseCase<R>,
+/// Placeholder user id for command DTOs. The API resolves the real user from the bearer token.
+pub(crate) fn command_user_id() -> UserId {
+    UserId::from_uuid(Uuid::nil())
+}
 
-    pub user_id: UserId,
+/// The whole application model.
+pub struct App {
+    pub client: WorkloggerClient,
 
     // Shared state.
     pub mode: Mode,
@@ -78,21 +71,10 @@ pub struct App<R: WorklogRepository> {
     pub open: open::Model,
 }
 
-impl<R: WorklogRepository> App<R> {
-    pub async fn new(
-        create_worklog_usecase: CreateWorklogUseCase<R>,
-        filter_worklogs_usecase: FilterWorklogsUsecase<R>,
-        export_worklogs_usecase: ExportWorklogsUsecase<R>,
-        delete_worklog_usecase: DeleteWorklogUseCase<R>,
-        get_worklog_usecase: GetWorklogUseCase<R>,
-    ) -> io::Result<Self> {
+impl App {
+    pub async fn new(client: WorkloggerClient) -> io::Result<Self> {
         let mut app = Self {
-            create_worklog_usecase,
-            filter_worklogs_usecase,
-            export_worklogs_usecase,
-            delete_worklog_usecase,
-            get_worklog_usecase,
-            user_id: legacy_user_id(),
+            client,
             mode: Mode::Normal,
             rows: Vec::new(),
             total_entries: 0,
@@ -127,13 +109,13 @@ impl<R: WorklogRepository> App<R> {
     /// Runs the current search query and refreshes the table rows. Shared effect
     /// used by the search bar as well as the add/delete dialogs.
     pub async fn apply_search(&mut self) -> io::Result<()> {
-        let mut command = parse_search_input(&self.search_input, self.user_id);
+        let mut command = parse_search_input(&self.search_input);
         if let Err(errors) = command.validate() {
             self.set_status(format!("Filter: {}", errors.join("; ")), 4);
             return Ok(());
         }
 
-        match self.filter_worklogs_usecase.execute(command).await {
+        match self.client.filter_worklogs(command).await {
             Ok(page) => {
                 self.total_entries = page.total_items as usize;
                 self.rows = page.items.iter().map(worklog_to_row).collect();
@@ -144,7 +126,7 @@ impl<R: WorklogRepository> App<R> {
                 }
                 self.set_status(format!("{} worklog(s) matched", page.total_items), 2);
             }
-            Err(err) => self.set_status(format!("{err}"), 4),
+            Err(err) => self.set_status(sdk_error_message(&err), 4),
         }
         Ok(())
     }
@@ -155,13 +137,13 @@ impl<R: WorklogRepository> App<R> {
 
     /// Exports the current search results to an Excel file under [`export_dir`].
     pub async fn export_search_results(&mut self) -> io::Result<()> {
-        let mut command = parse_search_input(&self.search_input, self.user_id);
+        let mut command = parse_search_input(&self.search_input);
         if let Err(errors) = command.validate() {
             self.set_status(format!("Filter: {}", errors.join("; ")), 4);
             return Ok(());
         }
 
-        match self.export_worklogs_usecase.execute(command).await {
+        match self.client.export_worklogs(command).await {
             Ok(file) => {
                 let path = write_export_file(&export_dir(), &file.filename, &file.bytes)?;
                 self.set_status(
@@ -173,7 +155,7 @@ impl<R: WorklogRepository> App<R> {
                     4,
                 );
             }
-            Err(err) => self.set_status(format!("{err}"), 4),
+            Err(err) => self.set_status(sdk_error_message(&err), 4),
         }
         Ok(())
     }
@@ -185,8 +167,12 @@ impl<R: WorklogRepository> App<R> {
     }
 }
 
+fn sdk_error_message(err: &SdkError) -> String {
+    err.to_string()
+}
+
 /// Translates a key press into a [`Msg`], routing to the active screen.
-pub fn from_key<R: WorklogRepository>(app: &App<R>, key: KeyEvent) -> Option<Msg> {
+pub fn from_key(app: &App, key: KeyEvent) -> Option<Msg> {
     if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
         return Some(Msg::Quit);
     }
@@ -201,7 +187,7 @@ pub fn from_key<R: WorklogRepository>(app: &App<R>, key: KeyEvent) -> Option<Msg
 }
 
 /// Applies a [`Msg`] to the model, routing to the owning screen's update.
-pub async fn update<R: WorklogRepository>(app: &mut App<R>, msg: Msg) -> io::Result<Outcome> {
+pub async fn update(app: &mut App, msg: Msg) -> io::Result<Outcome> {
     match msg {
         Msg::Tick => {
             app.tick();
@@ -236,10 +222,10 @@ pub fn worklog_to_row(worklog: &Worklog) -> WorklogRow {
 }
 
 /// Sync crossterm loop; async work runs on the Tokio runtime via `handle`.
-pub fn run_terminal<R: WorklogRepository>(
+pub fn run_terminal(
     terminal: &mut ratatui::DefaultTerminal,
     handle: &Handle,
-    mut app: App<R>,
+    mut app: App,
 ) -> io::Result<()> {
     loop {
         app.tick();

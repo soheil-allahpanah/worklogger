@@ -1,11 +1,11 @@
 use regex::Regex;
 use std::sync::OnceLock;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use chrono::NaiveDate;
 use crate::util::convert_jalali_string_to_naive_date;
 
 
-#[derive(Debug, Clone, Deserialize, Default)]
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
 pub struct ListFilter<T> {
     pub in_list: Option<Vec<T>>,
     pub not_in: Option<Vec<T>>,
@@ -50,12 +50,12 @@ impl<T: PartialEq> ListFilter<T> {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct TextFilter {
     pub contains: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct JalaliDateFilter {
     pub from: Option<String>, // Expected format: YYYY/MM/DD (Jalali)
     pub to: Option<String>,
@@ -145,7 +145,7 @@ impl TryFrom<JalaliDateFilter> for DateFilter {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct DurationFilter {
     pub from: Option<String>, // Expected format: xhymzs
     pub to: Option<String>,

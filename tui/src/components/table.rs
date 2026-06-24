@@ -4,7 +4,6 @@
 use std::io;
 
 use crossterm::event::{KeyCode, KeyEvent};
-use domain::traits::WorklogRepository;
 use ratatui::{
     buffer::Buffer,
     layout::{Alignment, Rect},
@@ -13,9 +12,9 @@ use ratatui::{
     widgets::{Paragraph, Widget},
     Frame,
 };
-use use_cases::GetWorklogCommand;
+use sdk::GetWorklogCommand;
 
-use crate::app::{worklog_to_row, App, Mode};
+use crate::app::{command_user_id, worklog_to_row, App, Mode};
 use crate::dialogs::{add, delete};
 use crate::format::styled_tags_line;
 use crate::message::Outcome;
@@ -69,10 +68,7 @@ pub fn from_key(key: KeyEvent) -> Option<Msg> {
 }
 
 /// Applies a message to the model, running effects as needed.
-pub async fn update<R: WorklogRepository>(
-    app: &mut App<R>,
-    msg: Msg,
-) -> io::Result<Outcome> {
+pub async fn update(app: &mut App, msg: Msg) -> io::Result<Outcome> {
     match msg {
         Msg::Quit => return Ok(Outcome::Quit),
         Msg::SelectNext => select_next(app),
@@ -98,9 +94,9 @@ pub async fn update<R: WorklogRepository>(
         Msg::OpenDetail => {
             if let Some(id) = selected_id(app) {
                 let worklog = app
-                    .get_worklog_usecase
-                    .execute(GetWorklogCommand {
-                        user_id: app.user_id,
+                    .client
+                    .get_worklog(GetWorklogCommand {
+                        user_id: command_user_id(),
                         id,
                     })
                     .await
@@ -115,14 +111,14 @@ pub async fn update<R: WorklogRepository>(
     Ok(Outcome::Continue)
 }
 
-fn selected_id<R: WorklogRepository>(app: &App<R>) -> Option<uuid::Uuid> {
+fn selected_id(app: &App) -> Option<uuid::Uuid> {
     app.table_state
         .selected()
         .and_then(|i| app.rows.get(i))
         .map(|row| row.id)
 }
 
-fn select_next<R: WorklogRepository>(app: &mut App<R>) {
+fn select_next(app: &mut App) {
     if app.rows.is_empty() {
         return;
     }
@@ -133,7 +129,7 @@ fn select_next<R: WorklogRepository>(app: &mut App<R>) {
     app.table_state.select(Some(i));
 }
 
-fn select_prev<R: WorklogRepository>(app: &mut App<R>) {
+fn select_prev(app: &mut App) {
     if app.rows.is_empty() {
         return;
     }
@@ -322,7 +318,7 @@ fn scroll_offset(selected: Option<usize>, total: usize, visible: usize) -> usize
 }
 
 /// Renders the worklog table into `area`.
-pub fn view<R: WorklogRepository>(frame: &mut Frame, app: &mut App<R>, area: Rect) {
+pub fn view(frame: &mut Frame, app: &mut App, area: Rect) {
     let cols = column_widths(area.width);
     let body_h = area.height.saturating_sub(3).max(1) as usize;
     let scroll = scroll_offset(app.table_state.selected(), app.rows.len(), body_h);

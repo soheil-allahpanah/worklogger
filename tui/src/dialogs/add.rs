@@ -4,7 +4,6 @@ use std::io;
 
 use chrono::Utc;
 use crossterm::event::{KeyCode, KeyEvent};
-use domain::traits::WorklogRepository;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Modifier, Style},
@@ -12,9 +11,9 @@ use ratatui::{
     widgets::{block::Position, Block, BorderType, Borders, Paragraph},
     Frame,
 };
-use use_cases::CreateWorklogCommand;
+use sdk::CreateWorklogCommand;
 
-use crate::app::{App, Mode};
+use crate::app::{command_user_id, App, Mode};
 use crate::format::{jalali_date_string, parse_duration_input};
 use crate::message::Outcome;
 use crate::theme;
@@ -104,10 +103,7 @@ pub fn from_key(key: KeyEvent) -> Option<Msg> {
 }
 
 /// Applies a message to the model, running effects as needed.
-pub async fn update<R: WorklogRepository>(
-    app: &mut App<R>,
-    msg: Msg,
-) -> io::Result<Outcome> {
+pub async fn update(app: &mut App, msg: Msg) -> io::Result<Outcome> {
     match msg {
         Msg::Cancel => app.mode = Mode::Normal,
         Msg::FocusNext => app.add.focused = app.add.focused.next(),
@@ -126,7 +122,7 @@ pub async fn update<R: WorklogRepository>(
 }
 
 /// Validates and persists the form. Returns `true` on success.
-async fn submit<R: WorklogRepository>(app: &mut App<R>) -> io::Result<bool> {
+async fn submit(app: &mut App) -> io::Result<bool> {
     let Some(duration_secs) = parse_duration_input(&app.add.duration) else {
         app.set_status("Invalid duration (e.g. 2h30m or seconds)".into(), 4);
         return Ok(false);
@@ -151,14 +147,14 @@ async fn submit<R: WorklogRepository>(app: &mut App<R>) -> io::Result<bool> {
         .collect();
 
     let command = CreateWorklogCommand {
-        user_id: app.user_id,
+        user_id: command_user_id(),
         jalali_date,
         duration_secs,
         tags,
         description: app.add.description.clone(),
     };
 
-    match app.create_worklog_usecase.execute(command).await {
+    match app.client.create_worklog(command).await {
         Ok(resp) => {
             app.set_status(format!("Created {}", resp.id), 2);
             app.reload_worklogs().await?;
@@ -172,7 +168,7 @@ async fn submit<R: WorklogRepository>(app: &mut App<R>) -> io::Result<bool> {
 }
 
 /// Renders the add dialog over the current frame.
-pub fn view<R: WorklogRepository>(frame: &mut Frame, app: &App<R>) {
+pub fn view(frame: &mut Frame, app: &App) {
     let area = theme::centered_rect(45, 37, frame.area());
     let block = Block::default()
         .title(" Adding New Worklog ")

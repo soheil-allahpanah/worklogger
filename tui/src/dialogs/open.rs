@@ -3,7 +3,6 @@
 use std::io;
 
 use crossterm::event::{KeyCode, KeyEvent};
-use domain::traits::WorklogRepository;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
@@ -41,10 +40,7 @@ pub fn from_key(key: KeyEvent) -> Option<Msg> {
 }
 
 /// Applies a message to the model.
-pub async fn update<R: WorklogRepository>(
-    app: &mut App<R>,
-    msg: Msg,
-) -> io::Result<Outcome> {
+pub async fn update(app: &mut App, msg: Msg) -> io::Result<Outcome> {
     match msg {
         Msg::Close => {
             app.open.worklog = None;
@@ -166,7 +162,7 @@ fn render_field_row(frame: &mut Frame, area: Rect, row: &FieldRow) {
 }
 
 /// Renders the details dialog over the current frame.
-pub fn view<R: WorklogRepository>(frame: &mut Frame, app: &App<R>) {
+pub fn view(frame: &mut Frame, app: &App) {
     let Some(worklog) = app.open.worklog.as_ref() else {
         return;
     };

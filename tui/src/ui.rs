@@ -1,7 +1,6 @@
 //! The root view: composes the persistent components and overlays the active
 //! dialog plus any transient status toast.
 
-use domain::traits::WorklogRepository;
 use ratatui::{
     layout::{Constraint, Direction, Layout},
     style::{Modifier, Style, Stylize},
@@ -15,7 +14,7 @@ use crate::components::{help_bar, search_bar, table};
 use crate::dialogs::{add, delete, open};
 use crate::theme;
 
-pub fn view<R: WorklogRepository>(frame: &mut Frame, app: &mut App<R>) {
+pub fn view(frame: &mut Frame, app: &mut App) {
     let root = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
@@ -41,7 +40,7 @@ pub fn view<R: WorklogRepository>(frame: &mut Frame, app: &mut App<R>) {
     draw_status_toast(frame, app);
 }
 
-fn draw_title<R: WorklogRepository>(frame: &mut Frame, app: &App<R>, area: ratatui::layout::Rect) {
+fn draw_title(frame: &mut Frame, app: &App, area: ratatui::layout::Rect) {
     let version = env!("CARGO_PKG_VERSION");
     let view_name = match app.mode {
         Mode::Normal | Mode::Search => "Main View",
@@ -73,7 +72,7 @@ fn draw_title<R: WorklogRepository>(frame: &mut Frame, app: &App<R>, area: ratat
     frame.render_widget(block, area);
 }
 
-fn draw_status_toast<R: WorklogRepository>(frame: &mut Frame, app: &App<R>) {
+fn draw_status_toast(frame: &mut Frame, app: &App) {
     let Some(msg) = app.status_message.clone() else {
         return;
     };

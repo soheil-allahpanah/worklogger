@@ -10,7 +10,6 @@ use ratatui::{
 
 use crate::app::{App, Mode};
 use crate::theme;
-use domain::traits::WorklogRepository;
 
 struct Hint<'a> {
     key: &'a str,
@@ -18,7 +17,7 @@ struct Hint<'a> {
 }
 
 /// Renders mode-aware keybinding hints into `area`.
-pub fn view<R: WorklogRepository>(frame: &mut Frame, app: &App<R>, area: Rect) {
+pub fn view(frame: &mut Frame, app: &App, area: Rect) {
     let hints: &[Hint] = match app.mode {
         Mode::Normal => &[
             Hint {

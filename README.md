@@ -91,19 +91,25 @@ cp .env.example .env
 ```env
 DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/worklog
 
+# TUI (HTTP client — API must be running)
+WORKLOGGER_BASE_URL=http://127.0.0.1:3000
+WORKLOGGER_TOKEN=wl_your_device_token
+
 # Optional
 # HOST=127.0.0.1
 # PORT=3000
 # WORKLOGGER_EXPORT_DIR=~/Download
 ```
 
-The TUI and API read `DATABASE_URL` at startup. The TUI also accepts `WORKLOGGER_EXPORT_DIR` to choose where Excel files are saved (default: `~/Download`).
+The API reads `DATABASE_URL` at startup. The TUI talks to the API via the SDK and requires `WORKLOGGER_BASE_URL` and `WORKLOGGER_TOKEN`. It also accepts `WORKLOGGER_EXPORT_DIR` to choose where Excel files are saved (default: `~/Download`).
 
 ### 3. Run the TUI
 
-From the repository root:
+Start the API first (see below), then from the repository root:
 
 ```bash
+export WORKLOGGER_BASE_URL=http://127.0.0.1:3000
+export WORKLOGGER_TOKEN=wl_your_device_token
 cargo run -p tui
 ```
 
@@ -131,11 +137,13 @@ cargo build -p api --release
 Optional environment variables:
 
 
-| Variable                | Default      | Description                |
-| ----------------------- | ------------ | -------------------------- |
-| `HOST`                  | `127.0.0.1`  | API bind address           |
-| `PORT`                  | `3000`       | API listen port            |
-| `WORKLOGGER_EXPORT_DIR` | `~/Download` | TUI Excel export directory |
+| Variable                | Default      | Description                              |
+| ----------------------- | ------------ | ---------------------------------------- |
+| `HOST`                  | `127.0.0.1`  | API bind address                         |
+| `PORT`                  | `3000`       | API listen port                          |
+| `WORKLOGGER_BASE_URL`   | —            | TUI: API base URL (required)             |
+| `WORKLOGGER_TOKEN`      | —            | TUI: device bearer token (required)      |
+| `WORKLOGGER_EXPORT_DIR` | `~/Download` | TUI Excel export directory               |
 
 
 ## TUI guide
