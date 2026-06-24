@@ -11,7 +11,9 @@ use std::time::{Duration, Instant};
 
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use domain::entities::Worklog;
+use domain::bootstrap::legacy_user_id;
 use domain::traits::WorklogRepository;
+use domain::value_objects::UserId;
 use ratatui::widgets::TableState;
 use tokio::runtime::Handle;
 use use_cases::{
@@ -57,6 +59,8 @@ pub struct App<R: WorklogRepository> {
     pub delete_worklog_usecase: DeleteWorklogUseCase<R>,
     pub get_worklog_usecase: GetWorklogUseCase<R>,
 
+    pub user_id: UserId,
+
     // Shared state.
     pub mode: Mode,
     pub rows: Vec<WorklogRow>,
@@ -88,6 +92,7 @@ impl<R: WorklogRepository> App<R> {
             export_worklogs_usecase,
             delete_worklog_usecase,
             get_worklog_usecase,
+            user_id: legacy_user_id(),
             mode: Mode::Normal,
             rows: Vec::new(),
             total_entries: 0,
@@ -122,7 +127,7 @@ impl<R: WorklogRepository> App<R> {
     /// Runs the current search query and refreshes the table rows. Shared effect
     /// used by the search bar as well as the add/delete dialogs.
     pub async fn apply_search(&mut self) -> io::Result<()> {
-        let mut command = parse_search_input(&self.search_input);
+        let mut command = parse_search_input(&self.search_input, self.user_id);
         if let Err(errors) = command.validate() {
             self.set_status(format!("Filter: {}", errors.join("; ")), 4);
             return Ok(());
@@ -150,7 +155,7 @@ impl<R: WorklogRepository> App<R> {
 
     /// Exports the current search results to an Excel file under [`export_dir`].
     pub async fn export_search_results(&mut self) -> io::Result<()> {
-        let mut command = parse_search_input(&self.search_input);
+        let mut command = parse_search_input(&self.search_input, self.user_id);
         if let Err(errors) = command.validate() {
             self.set_status(format!("Filter: {}", errors.join("; ")), 4);
             return Ok(());

@@ -6,6 +6,7 @@ use uuid::Uuid;
 #[derive(Debug, FromRow)]
 pub struct WorklogRow {
     pub id: Uuid,
+    pub user_id: Uuid,
     pub datetime: DateTime<Utc>,
     pub duration_secs: i64,
     pub tags: Vec<String>,

@@ -6,7 +6,6 @@ use crate::error::UseCaseResult;
 use crate::jalali::{jalali_date_to_worklog_datetime, parse_jalali_date, today_jalali_in_tehran};
 
 pub fn command_to_worklog(command: CreateWorklogCommand) -> UseCaseResult<Worklog> {
-
     let (jy, jm, jd) = match command
         .jalali_date
         .as_deref()
@@ -22,5 +21,11 @@ pub fn command_to_worklog(command: CreateWorklogCommand) -> UseCaseResult<Worklo
     let tags = Tags::try_from_strs(command.tags)?;
     let description = Description::try_new(command.description)?;
 
-    Ok(Worklog::create(datetime, duration, tags, description))
+    Ok(Worklog::create(
+        command.user_id,
+        datetime,
+        duration,
+        tags,
+        description,
+    ))
 }

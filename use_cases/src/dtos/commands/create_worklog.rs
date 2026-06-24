@@ -1,12 +1,11 @@
-use serde::Deserialize;
-
 use crate::error::{UseCaseResult, ValidationError};
 use crate::jalali::parse_jalali_date;
-use domain::value_objects::{DESCRIPTION_MAX_LEN, MAX_TAG_COUNT, TAG_MAX_LEN};
+use domain::value_objects::{UserId, DESCRIPTION_MAX_LEN, MAX_TAG_COUNT, TAG_MAX_LEN};
 
 /// Input for the create-worklog use case.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CreateWorklogCommand {
+    pub user_id: UserId,
     /// Jalali calendar date (`YYYY-MM-DD` or `YYYY/MM/DD`). When `None` or blank, today (Asia/Tehran) is used.
     pub jalali_date: Option<String>,
     /// Work session length in seconds (must be > 0 and < 86_400).

@@ -20,6 +20,7 @@ pub fn command_to_filter_criteria(command: FilterWorklogsCommand) -> UseCaseResu
     let duration = command.duration.map(map_duration_filter).transpose()?;
 
     Ok(WorklogFilterCriteria {
+        user_id: command.user_id,
         tags,
         ids,
         description: command.description,

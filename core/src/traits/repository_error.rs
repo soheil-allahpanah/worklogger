@@ -8,6 +8,10 @@ pub enum RepositoryError {
     QueryFailed,
     #[error("worklog not found")]
     NotFound,
+    #[error("user not found")]
+    UserNotFound,
+    #[error("token not found")]
+    TokenNotFound,
 }
 
 pub type RepositoryResult<T> = Result<T, RepositoryError>;

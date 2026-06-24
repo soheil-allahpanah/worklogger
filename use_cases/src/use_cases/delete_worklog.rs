@@ -16,7 +16,9 @@ impl<R> DeleteWorklogUseCase<R> {
 
 impl<R: WorklogRepository> DeleteWorklogUseCase<R> {
     pub async fn execute(&self, command: DeleteWorklogCommand) -> UseCaseResult<()> {
-        self.repository.delete(WorklogId::from_uuid(command.id)).await?;
+        self.repository
+            .delete(command.user_id, WorklogId::from_uuid(command.id))
+            .await?;
         Ok(())
     }
 }

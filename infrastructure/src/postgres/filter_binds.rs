@@ -14,6 +14,7 @@ pub struct FilterBinds {
     pub date_to: Option<NaiveDate>,
     pub duration_from_secs: Option<i64>,
     pub duration_to_secs: Option<i64>,
+    pub user_id: Uuid,
     pub limit: i64,
     pub offset: i64,
 }
@@ -43,6 +44,7 @@ impl From<&WorklogFilterCriteria> for FilterBinds {
             .unwrap_or((None, None));
 
         Self {
+            user_id: criteria.user_id.as_uuid(),
             ids_in,
             ids_not_in,
             tags_in,

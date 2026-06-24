@@ -2,8 +2,8 @@ use domain::entities::Worklog;
 use domain::traits::RepositoryError;
 use domain::traits::RepositoryResult;
 use domain::value_objects::{
-    CreatedAt, DeletedAt, Description, Tag, Tags, UpdatedAt, WorklogDateTime, WorklogDuration,
-    WorklogId,
+    CreatedAt, DeletedAt, Description, Tag, Tags, UpdatedAt, UserId, WorklogDateTime,
+    WorklogDuration, WorklogId,
 };
 
 use super::row::WorklogRow;
@@ -23,6 +23,7 @@ pub fn row_to_worklog(row: WorklogRow) -> RepositoryResult<Worklog> {
 
     Ok(Worklog::reconstitute(
         WorklogId::from_uuid(row.id),
+        UserId::from_uuid(row.user_id),
         WorklogDateTime::new(row.datetime),
         duration,
         Tags::new(tags),

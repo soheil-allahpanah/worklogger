@@ -16,7 +16,10 @@ impl<R> GetWorklogUseCase<R> {
 
 impl<R: WorklogRepository> GetWorklogUseCase<R> {
     pub async fn execute(&self, command: GetWorklogCommand) -> UseCaseResult<Worklog> {
-        let worklog = self.repository.get(WorklogId::from_uuid(command.id)).await?;
+        let worklog = self
+            .repository
+            .get(command.user_id, WorklogId::from_uuid(command.id))
+            .await?;
         Ok(worklog)
     }
 }

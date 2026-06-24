@@ -1,15 +1,23 @@
 mod description;
+mod email;
 mod tag;
 mod tags;
 mod timestamps;
+mod token_id;
+mod user_id;
+mod user_name;
 mod worklog_datetime;
 mod worklog_duration;
 mod worklog_id;
 
 pub use description::{Description, DESCRIPTION_MAX_LEN};
+pub use email::Email;
 pub use tag::{Tag, TAG_MAX_LEN};
 pub use tags::{Tags, MAX_TAG_COUNT};
-pub use timestamps::{CreatedAt, DeletedAt, UpdatedAt};
+pub use timestamps::{CreatedAt, DeletedAt, DisabledAt, RevokedAt, UpdatedAt};
+pub use token_id::TokenId;
+pub use user_id::UserId;
+pub use user_name::{UserName, USER_NAME_MAX_LEN};
 pub use worklog_datetime::WorklogDateTime;
 pub use worklog_duration::WorklogDuration;
 pub use worklog_id::WorklogId;

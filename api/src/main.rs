@@ -1,3 +1,4 @@
+mod actor;
 mod dto;
 mod error;
 mod helpers;

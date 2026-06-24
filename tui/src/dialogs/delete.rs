@@ -83,7 +83,10 @@ pub fn from_key(key: KeyEvent) -> Option<Msg> {
 async fn delete_target<R: WorklogRepository>(app: &mut App<R>) -> io::Result<()> {
     if let Some(id) = app.delete.target {
         app.delete_worklog_usecase
-            .execute(DeleteWorklogCommand { id })
+            .execute(DeleteWorklogCommand {
+                user_id: app.user_id,
+                id,
+            })
             .await
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
         app.reload_worklogs().await?;

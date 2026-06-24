@@ -1,16 +1,16 @@
 use common::filter::{DurationFilter, JalaliDateFilter, ListFilter, TextFilter};
 use common::pagination::PagingParams;
-use serde::Deserialize;
+use domain::value_objects::UserId;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct FilterWorklogsCommand {
+    pub user_id: UserId,
     pub tags: Option<ListFilter<String>>,
     pub ids: Option<ListFilter<Uuid>>,
     pub description: Option<TextFilter>,
     pub date: Option<JalaliDateFilter>,
     pub duration: Option<DurationFilter>,
-    #[serde(default)]
     pub paging: PagingParams,
 }
 

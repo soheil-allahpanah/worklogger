@@ -1,15 +1,28 @@
 use domain::criteria::WorklogFilterCriteria;
 use domain::entities::Worklog;
-use domain::value_objects::WorklogId;
 use domain::traits::{RepositoryError, RepositoryResult, WorklogRepository};
+use domain::value_objects::{UserId, WorklogId};
 use sqlx::PgPool;
 
 use super::filter_binds::FilterBinds;
 use super::mapper::{duration_secs, row_to_worklog};
 use super::row::WorklogRow;
 
+const WORKLOG_SELECT: &str = r#"
+    SELECT
+        id,
+        user_id,
+        datetime,
+        EXTRACT(EPOCH FROM duration)::bigint AS duration_secs,
+        tags,
+        description,
+        created_at,
+        updated_at,
+        deleted_at
+    FROM worklogs
+"#;
 
-/// PostgreSQL implementation of [`WorklogRepository`] using compile-time-checked SQL (`sqlx` macros).
+/// PostgreSQL implementation of [`WorklogRepository`].
 #[derive(Clone)]
 pub struct PostgresWorklogRepository {
     pool: PgPool,
@@ -26,28 +39,18 @@ impl PostgresWorklogRepository {
 }
 
 impl WorklogRepository for PostgresWorklogRepository {
-
-    async fn get(&self, id: WorklogId) -> RepositoryResult<Worklog> {
-        let row = sqlx::query_as!(
-            WorklogRow,
-            r#"
-            SELECT id, 
-                    datetime,
-                    EXTRACT(EPOCH FROM duration)::bigint AS "duration_secs!",
-                    tags,
-                    description,
-                    created_at,
-                    updated_at,
-                    deleted_at
-            FROM worklogs WHERE id = $1
-            "#,
-            id.as_uuid(),
-        )
-        .fetch_one(&self.pool)
+    async fn get(&self, user_id: UserId, id: WorklogId) -> RepositoryResult<Worklog> {
+        let row = sqlx::query_as::<_, WorklogRow>(&format!(
+            "{WORKLOG_SELECT} WHERE id = $1 AND user_id = $2"
+        ))
+        .bind(id.as_uuid())
+        .bind(user_id.as_uuid())
+        .fetch_optional(&self.pool)
         .await
-        .map_err(|_| RepositoryError::QueryFailed)?;
+        .map_err(|_| RepositoryError::QueryFailed)?
+        .ok_or(RepositoryError::NotFound)?;
 
-        Ok(row_to_worklog(row)?)
+        row_to_worklog(row)
     }
 
     async fn save(&self, worklog: &Worklog) -> RepositoryResult<()> {
@@ -59,10 +62,11 @@ impl WorklogRepository for PostgresWorklogRepository {
             .collect();
         let description = worklog.description().map(|d| d.as_str().to_owned());
 
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO worklogs (
                 id,
+                user_id,
                 datetime,
                 duration,
                 tags,
@@ -71,17 +75,18 @@ impl WorklogRepository for PostgresWorklogRepository {
                 updated_at,
                 deleted_at
             )
-            VALUES ($1, $2, make_interval(secs => $3), $4, $5, $6, $7, $8)
+            VALUES ($1, $2, $3, make_interval(secs => $4), $5, $6, $7, $8, $9)
             "#,
-            worklog.id().as_uuid(),
-            worklog.datetime().as_datetime(),
-            duration,
-            &tags,
-            description,
-            worklog.created_at().as_datetime(),
-            worklog.updated_at().as_datetime(),
-            worklog.deleted_at().map(|d| d.as_datetime()),
         )
+        .bind(worklog.id().as_uuid())
+        .bind(worklog.user_id().as_uuid())
+        .bind(worklog.datetime().as_datetime())
+        .bind(duration)
+        .bind(&tags)
+        .bind(description)
+        .bind(worklog.created_at().as_datetime())
+        .bind(worklog.updated_at().as_datetime())
+        .bind(worklog.deleted_at().map(|d| d.as_datetime()))
         .execute(&self.pool)
         .await
         .map_err(|_| RepositoryError::PersistFailed)?;
@@ -92,13 +97,13 @@ impl WorklogRepository for PostgresWorklogRepository {
     async fn filter(&self, criteria: &WorklogFilterCriteria) -> RepositoryResult<Vec<Worklog>> {
         let binds = FilterBinds::from(criteria);
 
-        let rows = sqlx::query_as!(
-            WorklogRow,
+        let rows = sqlx::query_as::<_, WorklogRow>(
             r#"
             SELECT
                 id,
+                user_id,
                 datetime,
-                EXTRACT(EPOCH FROM duration)::bigint AS "duration_secs!",
+                EXTRACT(EPOCH FROM duration)::bigint AS duration_secs,
                 tags,
                 description,
                 created_at,
@@ -106,31 +111,33 @@ impl WorklogRepository for PostgresWorklogRepository {
                 deleted_at
             FROM worklogs
             WHERE deleted_at IS NULL
-              AND ($1::uuid[] IS NULL OR id = ANY($1))
-              AND ($2::uuid[] IS NULL OR NOT (id = ANY($2)))
-              AND ($3::text[] IS NULL OR tags && $3)
-              AND ($4::text[] IS NULL OR NOT (tags && $4))
-              AND ($5::text IS NULL OR description ILIKE '%' || $5 || '%')
-              AND ($6::date IS NULL OR datetime::date >= $6)
-              AND ($7::date IS NULL OR datetime::date <= $7)
-              AND ($8::bigint IS NULL OR EXTRACT(EPOCH FROM duration)::bigint >= $8)
-              AND ($9::bigint IS NULL OR EXTRACT(EPOCH FROM duration)::bigint <= $9)
+              AND user_id = $1
+              AND ($2::uuid[] IS NULL OR id = ANY($2))
+              AND ($3::uuid[] IS NULL OR NOT (id = ANY($3)))
+              AND ($4::text[] IS NULL OR tags && $4)
+              AND ($5::text[] IS NULL OR NOT (tags && $5))
+              AND ($6::text IS NULL OR description ILIKE '%' || $6 || '%')
+              AND ($7::date IS NULL OR datetime::date >= $7)
+              AND ($8::date IS NULL OR datetime::date <= $8)
+              AND ($9::bigint IS NULL OR EXTRACT(EPOCH FROM duration)::bigint >= $9)
+              AND ($10::bigint IS NULL OR EXTRACT(EPOCH FROM duration)::bigint <= $10)
             ORDER BY datetime DESC
-            LIMIT $10
-            OFFSET $11
+            LIMIT $11
+            OFFSET $12
             "#,
-            binds.ids_in.as_deref(),
-            binds.ids_not_in.as_deref(),
-            binds.tags_in.as_deref(),
-            binds.tags_not_in.as_deref(),
-            binds.description_contains.as_deref(),
-            binds.date_from,
-            binds.date_to,
-            binds.duration_from_secs,
-            binds.duration_to_secs,
-            binds.limit,
-            binds.offset,
         )
+        .bind(binds.user_id)
+        .bind(binds.ids_in.as_deref())
+        .bind(binds.ids_not_in.as_deref())
+        .bind(binds.tags_in.as_deref())
+        .bind(binds.tags_not_in.as_deref())
+        .bind(binds.description_contains.as_deref())
+        .bind(binds.date_from)
+        .bind(binds.date_to)
+        .bind(binds.duration_from_secs)
+        .bind(binds.duration_to_secs)
+        .bind(binds.limit)
+        .bind(binds.offset)
         .fetch_all(&self.pool)
         .await
         .map_err(|_| RepositoryError::QueryFailed)?;
@@ -138,16 +145,23 @@ impl WorklogRepository for PostgresWorklogRepository {
         rows.into_iter().map(row_to_worklog).collect()
     }
 
-    async fn delete(&self, id: WorklogId) -> RepositoryResult<()> {
-        sqlx::query!(
+    async fn delete(&self, user_id: UserId, id: WorklogId) -> RepositoryResult<()> {
+        let result = sqlx::query(
             r#"
-            UPDATE worklogs SET deleted_at = NOW() WHERE id = $1
+            UPDATE worklogs
+            SET deleted_at = NOW()
+            WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL
             "#,
-            id.as_uuid(),
         )
+        .bind(id.as_uuid())
+        .bind(user_id.as_uuid())
         .execute(&self.pool)
         .await
         .map_err(|_| RepositoryError::PersistFailed)?;
+
+        if result.rows_affected() == 0 {
+            return Err(RepositoryError::NotFound);
+        }
 
         Ok(())
     }

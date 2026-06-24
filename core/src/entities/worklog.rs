@@ -2,13 +2,14 @@ use chrono::Utc;
 
 use crate::error::{DomainError, DomainResult};
 use crate::value_objects::{
-    CreatedAt, DeletedAt, Description, Tags, UpdatedAt, WorklogDateTime, WorklogDuration,
+    CreatedAt, DeletedAt, Description, Tags, UpdatedAt, UserId, WorklogDateTime, WorklogDuration,
     WorklogId,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Worklog {
     id: WorklogId,
+    user_id: UserId,
     datetime: WorklogDateTime,
     duration: WorklogDuration,
     tags: Tags,
@@ -21,6 +22,7 @@ pub struct Worklog {
 impl Worklog {
     /// Creates a new worklog before persistence. IDs and audit timestamps are set in the domain.
     pub fn create(
+        user_id: UserId,
         datetime: WorklogDateTime,
         duration: WorklogDuration,
         tags: Tags,
@@ -29,6 +31,7 @@ impl Worklog {
         let now = Utc::now();
         Self {
             id: WorklogId::generate(),
+            user_id,
             datetime,
             duration,
             tags,
@@ -42,6 +45,7 @@ impl Worklog {
     /// Rebuilds a worklog loaded from persistence (repository / mapper).
     pub fn reconstitute(
         id: WorklogId,
+        user_id: UserId,
         datetime: WorklogDateTime,
         duration: WorklogDuration,
         tags: Tags,
@@ -52,6 +56,7 @@ impl Worklog {
     ) -> Self {
         Self {
             id,
+            user_id,
             datetime,
             duration,
             tags,
@@ -64,6 +69,10 @@ impl Worklog {
 
     pub fn id(&self) -> WorklogId {
         self.id
+    }
+
+    pub fn user_id(&self) -> UserId {
+        self.user_id
     }
 
     pub fn datetime(&self) -> WorklogDateTime {

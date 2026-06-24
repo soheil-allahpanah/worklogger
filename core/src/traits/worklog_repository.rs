@@ -3,20 +3,20 @@ use std::sync::Arc;
 use crate::criteria::WorklogFilterCriteria;
 use crate::entities::Worklog;
 use crate::traits::repository_error::RepositoryResult;
-use crate::value_objects::WorklogId;
+use crate::value_objects::{UserId, WorklogId};
 
 /// Persistence port for the `Worklog` aggregate. Implementations live in `infrastructure`.
 pub trait WorklogRepository {
-    async fn get(&self, id: WorklogId) -> RepositoryResult<Worklog>;
+    async fn get(&self, user_id: UserId, id: WorklogId) -> RepositoryResult<Worklog>;
     async fn save(&self, worklog: &Worklog) -> RepositoryResult<()>;
     async fn filter(&self, criteria: &WorklogFilterCriteria) -> RepositoryResult<Vec<Worklog>>;
-    async fn delete(&self, id: WorklogId) -> RepositoryResult<()>;
+    async fn delete(&self, user_id: UserId, id: WorklogId) -> RepositoryResult<()>;
 }
 
 impl<R: WorklogRepository> WorklogRepository for Arc<R> {
 
-    async fn get(&self, id: WorklogId) -> RepositoryResult<Worklog> {
-        self.as_ref().get(id).await
+    async fn get(&self, user_id: UserId, id: WorklogId) -> RepositoryResult<Worklog> {
+        self.as_ref().get(user_id, id).await
     }
 
     async fn save(&self, worklog: &Worklog) -> RepositoryResult<()> {
@@ -27,8 +27,8 @@ impl<R: WorklogRepository> WorklogRepository for Arc<R> {
         self.as_ref().filter(criteria).await
     }
 
-    async fn delete(&self, id: WorklogId) -> RepositoryResult<()> {
-        self.as_ref().delete(id).await
+    async fn delete(&self, user_id: UserId, id: WorklogId) -> RepositoryResult<()> {
+        self.as_ref().delete(user_id, id).await
     }
 }
 

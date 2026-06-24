@@ -22,6 +22,24 @@ pub enum DomainError {
     AlreadyDeleted,
     #[error("worklog is not deleted")]
     NotDeleted,
+    #[error("user name must not be empty")]
+    EmptyUserName,
+    #[error("user name must be at most {max} characters, got {len}")]
+    UserNameTooLong { max: usize, len: usize },
+    #[error("email must not be empty")]
+    EmptyEmail,
+    #[error("email must be at most {max} characters, got {len}")]
+    EmailTooLong { max: usize, len: usize },
+    #[error("email is invalid")]
+    InvalidEmail,
+    #[error("user is already disabled")]
+    AlreadyDisabled,
+    #[error("user is not disabled")]
+    NotDisabled,
+    #[error("user is deleted")]
+    UserDeleted,
+    #[error("token is already revoked")]
+    TokenAlreadyRevoked,
 }
 
 

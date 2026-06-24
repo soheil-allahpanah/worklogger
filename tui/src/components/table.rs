@@ -99,7 +99,10 @@ pub async fn update<R: WorklogRepository>(
             if let Some(id) = selected_id(app) {
                 let worklog = app
                     .get_worklog_usecase
-                    .execute(GetWorklogCommand { id })
+                    .execute(GetWorklogCommand {
+                        user_id: app.user_id,
+                        id,
+                    })
                     .await
                     .map(|worklog| worklog_to_row(&worklog))
                     .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;

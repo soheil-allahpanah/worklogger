@@ -1,3 +1,5 @@
+pub mod actor;
+pub mod bootstrap;
 pub mod criteria;
 pub mod entities;
 pub mod error;

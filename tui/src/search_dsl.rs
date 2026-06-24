@@ -7,12 +7,14 @@ use std::str::FromStr;
 
 use common::filter::{DurationFilter, JalaliDateFilter, ListFilter, TextFilter};
 use common::pagination::PagingParams;
+use domain::value_objects::UserId;
 use use_cases::FilterWorklogsCommand;
 use uuid::Uuid;
 
 /// Parses the bottom search bar input into a filter command.
-pub fn parse_search_input(input: &str) -> FilterWorklogsCommand {
+pub fn parse_search_input(input: &str, user_id: UserId) -> FilterWorklogsCommand {
     let mut cmd = FilterWorklogsCommand {
+        user_id,
         tags: None,
         ids: None,
         description: None,
@@ -107,11 +109,13 @@ where
 
 #[cfg(test)]
 mod tests {
+    use domain::bootstrap::legacy_user_id;
+
     use super::*;
 
     #[test]
     fn parses_quoted_description() {
-        let cmd = parse_search_input(r#"tag:rust desc:"fix bug""#);
+        let cmd = parse_search_input(r#"tag:rust desc:"fix bug""#, legacy_user_id());
         assert_eq!(
             cmd.tags.as_ref().unwrap().in_list.as_ref().unwrap(),
             &["rust".to_string()]

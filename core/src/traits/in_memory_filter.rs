@@ -10,6 +10,10 @@ pub fn matches_criteria(worklog: &Worklog, criteria: &WorklogFilterCriteria) -> 
         return false;
     }
 
+    if worklog.user_id() != criteria.user_id {
+        return false;
+    }
+
     if let Some(filter) = &criteria.ids {
         if !matches_id_filter(worklog.id(), filter) {
             return false;

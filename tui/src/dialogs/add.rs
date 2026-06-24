@@ -151,6 +151,7 @@ async fn submit<R: WorklogRepository>(app: &mut App<R>) -> io::Result<bool> {
         .collect();
 
     let command = CreateWorklogCommand {
+        user_id: app.user_id,
         jalali_date,
         duration_secs,
         tags,
