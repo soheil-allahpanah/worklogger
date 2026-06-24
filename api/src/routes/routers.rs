@@ -1,15 +1,16 @@
 use axum::{
-    routing::{delete, get, post},
+    middleware::from_fn_with_state,
+    routing::{get, post},
     Router,
 };
 use tower_http::trace::TraceLayer;
 
+use crate::middleware::require_auth;
 use crate::routes::controllers;
 use crate::state::AppState;
 
 pub fn router(state: AppState) -> Router {
-    Router::new()
-        .route("/health", get(health))
+    let protected = Router::new()
         .route(
             "/worklogs",
             post(controllers::create).get(controllers::filter_query),
@@ -19,9 +20,17 @@ pub fn router(state: AppState) -> Router {
             "/worklogs/export",
             get(controllers::export_query).post(controllers::export),
         )
-        .route("/worklogs/{id}", delete(controllers::delete))
+        .route(
+            "/worklogs/{id}",
+            get(controllers::get).delete(controllers::delete),
+        )
+        .route_layer(from_fn_with_state(state.clone(), require_auth))
+        .with_state(state.clone());
+
+    Router::new()
+        .route("/health", get(health))
+        .merge(protected)
         .layer(TraceLayer::new_for_http())
-        .with_state(state)
 }
 
 async fn health() -> &'static str {

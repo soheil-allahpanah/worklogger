@@ -4,6 +4,14 @@ use thiserror::Error;
 use uuid::Error as UuidError;
 
 #[derive(Debug, Error, PartialEq, Eq)]
+pub enum AuthError {
+    #[error("invalid or expired token")]
+    InvalidToken,
+    #[error("user account is disabled or deleted")]
+    UserInactive,
+}
+
+#[derive(Debug, Error, PartialEq, Eq)]
 pub enum UseCaseError {
     #[error(transparent)]
     Validation(#[from] ValidationError),
@@ -11,6 +19,8 @@ pub enum UseCaseError {
     Domain(#[from] DomainError),
     #[error(transparent)]
     Repository(#[from] RepositoryError),
+    #[error(transparent)]
+    Auth(#[from] AuthError),
     #[error("export failed: {0}")]
     Export(String),
 }

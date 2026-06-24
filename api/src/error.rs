@@ -5,7 +5,7 @@ use axum::{
 };
 use domain::traits::RepositoryError;
 use serde::Serialize;
-use use_cases::error::UseCaseError;
+use use_cases::error::{AuthError, UseCaseError};
 
 #[derive(Debug, Serialize)]
 struct ErrorBody {
@@ -52,6 +52,22 @@ impl ApiError {
             details: None,
         }
     }
+
+    pub fn unauthorized(message: impl Into<String>) -> Self {
+        Self {
+            status: StatusCode::UNAUTHORIZED,
+            message: message.into(),
+            details: None,
+        }
+    }
+
+    pub fn forbidden(message: impl Into<String>) -> Self {
+        Self {
+            status: StatusCode::FORBIDDEN,
+            message: message.into(),
+            details: None,
+        }
+    }
 }
 
 impl From<UseCaseError> for ApiError {
@@ -59,8 +75,20 @@ impl From<UseCaseError> for ApiError {
         match err {
             UseCaseError::Validation(e) => Self::bad_request(e.to_string()),
             UseCaseError::Domain(e) => Self::bad_request(e.to_string()),
+            UseCaseError::Auth(AuthError::InvalidToken) => {
+                Self::unauthorized("invalid or expired token")
+            }
+            UseCaseError::Auth(AuthError::UserInactive) => {
+                Self::forbidden("user account is disabled or deleted")
+            }
             UseCaseError::Repository(RepositoryError::NotFound) => {
                 Self::not_found("worklog not found")
+            }
+            UseCaseError::Repository(RepositoryError::UserNotFound) => {
+                Self::not_found("user not found")
+            }
+            UseCaseError::Repository(RepositoryError::TokenNotFound) => {
+                Self::unauthorized("invalid or expired token")
             }
             UseCaseError::Repository(_) => Self::internal("database error"),
             UseCaseError::Export(msg) => Self::internal(msg),

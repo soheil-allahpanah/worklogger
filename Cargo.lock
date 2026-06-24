@@ -2338,6 +2338,7 @@ dependencies = [
  "jalali-rs",
  "rust_xlsxwriter",
  "serde",
+ "sha2",
  "thiserror",
  "uuid",
 ]

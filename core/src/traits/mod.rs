@@ -1,4 +1,3 @@
-mod in_memory_filter;
 mod repository_error;
 mod token_repository;
 mod user_repository;

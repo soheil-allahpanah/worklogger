@@ -1,11 +1,14 @@
-use crate::actor::actor_user_id;
+use domain::value_objects::UserId;
 use use_cases::FilterWorklogsCommand;
 
 use crate::dto::FilterWorklogsRequest;
 
-pub fn request_to_command(request: FilterWorklogsRequest) -> FilterWorklogsCommand {
+pub fn request_to_command(
+    request: FilterWorklogsRequest,
+    user_id: UserId,
+) -> FilterWorklogsCommand {
     FilterWorklogsCommand {
-        user_id: actor_user_id(),
+        user_id,
         tags: request.tags,
         ids: request.ids,
         description: request.description,

@@ -1,8 +1,9 @@
 use axum::{
     extract::{State},
     http::StatusCode,
-    Json,
+    Extension, Json,
 };
+use domain::actor::ActorContext;
 
 use crate::dto::{CreateWorklogJson, CreateWorklogRequest};
 use crate::error::ApiResult;
@@ -11,9 +12,10 @@ use crate::state::AppState;
 
 pub async fn create(
     State(state): State<AppState>,
+    Extension(actor): Extension<ActorContext>,
     Json(body): Json<CreateWorklogRequest>,
 ) -> ApiResult<(StatusCode, Json<CreateWorklogJson>)> {
-    let command = create_worklog_request_to_command(body);
+    let command = create_worklog_request_to_command(body, actor.user_id());
     let response = state.create_worklog().execute(command).await?;
     Ok((StatusCode::CREATED, Json(worklog_id_to_json(response.id))))
 }

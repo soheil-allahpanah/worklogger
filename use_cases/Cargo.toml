@@ -13,3 +13,4 @@ common = { path = "../common"}
 jalali-rs = "0.1.1"
 rust_xlsxwriter = "0.84"
 thiserror = "2"
+sha2 = "0.10"

@@ -1,15 +1,17 @@
-mod actor;
 mod dto;
 mod error;
 mod helpers;
 mod mapper;
+mod middleware;
 mod routes;
 mod state;
 
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use infrastructure::postgres::{connect, PostgresWorklogRepository};
+use infrastructure::postgres::{
+    connect, PostgresTokenRepository, PostgresUserRepository, PostgresWorklogRepository,
+};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::routes::router;
@@ -31,8 +33,10 @@ async fn main() {
         .await
         .expect("failed to connect to database");
 
-    let repo = Arc::new(PostgresWorklogRepository::new(pool));
-    let state = AppState::new(repo);
+    let worklog_repo = Arc::new(PostgresWorklogRepository::new(pool.clone()));
+    let user_repo = Arc::new(PostgresUserRepository::new(pool.clone()));
+    let token_repo = Arc::new(PostgresTokenRepository::new(pool));
+    let state = AppState::new(worklog_repo, user_repo, token_repo);
     let app = router(state);
 
     let host = std::env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_string());

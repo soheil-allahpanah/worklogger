@@ -11,4 +11,5 @@ pub use create_worklog_json::worklog_id_to_json;
 pub use export_worklogs::export_response_to_http;
 pub use filter_query::query_to_request as filter_query_to_request;
 pub use filter_worklogs::request_to_command as filter_worklogs_request_to_command;
+pub use worklog::worklog_to_json;
 pub use worklog_page::page_to_json as worklog_page_to_json;

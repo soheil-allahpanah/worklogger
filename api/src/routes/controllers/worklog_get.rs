@@ -1,24 +1,25 @@
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
-    Extension,
+    Extension, Json,
 };
 use domain::actor::ActorContext;
-use use_cases::DeleteWorklogCommand;
+use use_cases::GetWorklogCommand;
 use uuid::Uuid;
 
+use crate::dto::WorklogJson;
 use crate::error::ApiResult;
+use crate::mapper::worklog_to_json;
 use crate::state::AppState;
 
-pub async fn delete(
+pub async fn get(
     State(state): State<AppState>,
     Extension(actor): Extension<ActorContext>,
     Path(id): Path<Uuid>,
-) -> ApiResult<StatusCode> {
-    let command = DeleteWorklogCommand {
+) -> ApiResult<Json<WorklogJson>> {
+    let command = GetWorklogCommand {
         user_id: actor.user_id(),
         id,
     };
-    state.delete_worklog().execute(command).await?;
-    Ok(StatusCode::NO_CONTENT)
+    let worklog = state.get_worklog().execute(command).await?;
+    Ok(Json(worklog_to_json(worklog)))
 }
