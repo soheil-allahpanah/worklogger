@@ -2,7 +2,7 @@
 
 A terminal-based work log for tracking time spent on tasks. Log sessions with Jalali dates, durations, descriptions, and tags, then browse, filter, and export them from a keyboard-driven TUI or an HTTP API backed by PostgreSQL.
 
-Built as a Rust workspace with a small hexagonal architecture: domain logic stays independent of the database and UI, so the same use cases power both the TUI and the HTTP API.
+Built as a Rust workspace with a small hexagonal architecture: domain logic stays independent of the database and UI. The API runs use cases against PostgreSQL; the TUI uses the SDK to call the API over HTTP.
 
 ## Features
 
@@ -134,16 +134,43 @@ cargo build -p api --release
 ./target/release/api
 ```
 
+### 5. Admin CLI (users and tokens)
+
+Run on a machine with database access (not on user laptops). Requires `DATABASE_URL` and `WORKLOGGER_ADMIN_TOKEN`.
+
+```bash
+export DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/worklog
+export WORKLOGGER_ADMIN_TOKEN=your-admin-secret
+
+# Create a user
+cargo run -p admin -- create-user --name "Alice" --email alice@team.local
+
+# Mint a device token (printed once — give to the user for WORKLOGGER_TOKEN)
+cargo run -p admin -- create-token --user <user-uuid> --label "alice-laptop"
+
+# Mint a token for the bootstrap legacy user (id 00000000-0000-4000-8000-000000000001)
+cargo run -p admin -- create-legacy-token --label "my-device"
+
+# Revoke a token or manage user lifecycle
+cargo run -p admin -- revoke-token --token-id <token-uuid>
+cargo run -p admin -- disable-user --user <user-uuid>
+cargo run -p admin -- enable-user --user <user-uuid>
+cargo run -p admin -- delete-user --user <user-uuid>
+```
+
+Release binary: `cargo build -p admin --release` → `./target/release/worklogger-admin`
+
 Optional environment variables:
 
 
-| Variable                | Default      | Description                              |
-| ----------------------- | ------------ | ---------------------------------------- |
-| `HOST`                  | `127.0.0.1`  | API bind address                         |
-| `PORT`                  | `3000`       | API listen port                          |
-| `WORKLOGGER_BASE_URL`   | —            | TUI: API base URL (required)             |
-| `WORKLOGGER_TOKEN`      | —            | TUI: device bearer token (required)      |
-| `WORKLOGGER_EXPORT_DIR` | `~/Download` | TUI Excel export directory               |
+| Variable                  | Default      | Description                              |
+| ------------------------- | ------------ | ---------------------------------------- |
+| `HOST`                    | `127.0.0.1`  | API bind address                         |
+| `PORT`                    | `3000`       | API listen port                          |
+| `WORKLOGGER_BASE_URL`     | —            | TUI: API base URL (required)             |
+| `WORKLOGGER_TOKEN`        | —            | TUI: device bearer token (required)      |
+| `WORKLOGGER_EXPORT_DIR`   | `~/Download` | TUI Excel export directory               |
+| `WORKLOGGER_ADMIN_TOKEN`  | —            | Admin CLI: required gate secret          |
 
 
 ## TUI guide

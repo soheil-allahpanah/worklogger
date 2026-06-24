@@ -1,0 +1,16 @@
+[package]
+name = "admin"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "worklogger-admin"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+domain = { path = "../core", package = "core" }
+infrastructure = { path = "../infrastructure" }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+use_cases = { path = "../use_cases" }
+uuid = { version = "1", features = ["v4"] }

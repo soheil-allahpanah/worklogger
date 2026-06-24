@@ -3,6 +3,10 @@
 # Build from the repository root:
 #   docker build -f api/Dockerfile -t worklogger-api .
 #
+# Rebuild, replace the running container, and prune the old image:
+#   export DATABASE_URL='postgres://USER:PASSWORD@db-host:5432/worklog'
+#   ./scripts/redeploy-worklogger-api.sh
+#
 # Run against an external PostgreSQL service (migrations are not applied by this image):
 #   docker run --rm -p 3000:3000 \
 #     -e DATABASE_URL='postgres://USER:PASSWORD@db-host:5432/worklog' \
@@ -23,9 +27,14 @@ COPY common/Cargo.toml common/Cargo.toml
 COPY use_cases/Cargo.toml use_cases/Cargo.toml
 COPY infrastructure/Cargo.toml infrastructure/Cargo.toml
 COPY tui/Cargo.toml tui/Cargo.toml
+COPY sdk/Cargo.toml sdk/Cargo.toml
+COPY admin/Cargo.toml admin/Cargo.toml
 
-# Workspace lists `tui`; stub it so only `api` is built.
-RUN mkdir -p tui/src && printf 'fn main() {}\n' > tui/src/main.rs
+# Workspace lists `tui`, `sdk`, and `admin`; stub them so only `api` is built.
+RUN mkdir -p tui/src admin/src sdk/src \
+    && printf 'fn main() {}\n' > tui/src/main.rs \
+    && printf 'fn main() {}\n' > admin/src/main.rs \
+    && printf '// stub\n' > sdk/src/lib.rs
 
 COPY .sqlx .sqlx
 COPY infrastructure/.sqlx infrastructure/.sqlx

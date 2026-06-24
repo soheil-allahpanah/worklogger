@@ -7,3 +7,7 @@ tui/.env
 **/.DS_Store
 tui/**
 !tui/Cargo.toml
+sdk/**
+!sdk/Cargo.toml
+admin/**
+!admin/Cargo.toml

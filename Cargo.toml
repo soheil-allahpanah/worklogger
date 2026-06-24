@@ -6,6 +6,7 @@ members = [
     "infrastructure",
     "tui",
     "api",
-    "sdk"
+    "sdk",
+    "admin"
 ]
 resolver = "2"
