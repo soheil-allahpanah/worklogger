@@ -17,6 +17,8 @@ set -euo pipefail
 #
 #   Env file (app vars only; networking flags stay as shell env):
 #     ENV_FILE=./api.env DOCKER_NETWORK=worklogger-net ./scripts/redeploy-worklogger-api.sh
+#
+# Required runtime vars: DATABASE_URL, JWT_SECRET (≥32 chars). Both can live in ENV_FILE or the shell.
 
 # --- Image / container ---
 IMAGE_NAME="${IMAGE_NAME:-worklogger-api}"
@@ -26,7 +28,7 @@ HOST_PORT="${HOST_PORT:-3000}"
 CONTAINER_PORT="${CONTAINER_PORT:-3000}"
 
 # --- Database / networking ---
-# Path to a file with runtime env vars (e.g. DATABASE_URL). Do not put DOCKER_NETWORK here.
+# Path to a file with runtime env vars (e.g. DATABASE_URL, JWT_SECRET). Do not put DOCKER_NETWORK here.
 ENV_FILE="${ENV_FILE:-}"
 # Attach the API container to this Docker network (for a DB running in another container).
 DOCKER_NETWORK="${DOCKER_NETWORK:-}"
@@ -40,8 +42,9 @@ cd "$REPO_ROOT"
 
 FULL_IMAGE="${IMAGE_NAME}:${IMAGE_TAG}"
 
-read_database_url_from_env_file() {
+read_env_value_from_file() {
   local file="$1"
+  local want_key="$2"
   local line key value
   while IFS= read -r line || [[ -n "$line" ]]; do
     line="${line%%#*}"
@@ -54,7 +57,7 @@ read_database_url_from_env_file() {
     key="${line%%=*}"
     value="${line#*=}"
     key="${key%"${key##*[![:space:]]}"}"
-    if [[ "$key" == "DATABASE_URL" ]]; then
+    if [[ "$key" == "$want_key" ]]; then
       # Strip optional surrounding quotes.
       value="${value#\"}"
       value="${value%\"}"
@@ -67,16 +70,23 @@ read_database_url_from_env_file() {
   return 1
 }
 
-resolve_database_url() {
-  if [[ -n "${DATABASE_URL:-}" ]]; then
-    printf '%s' "$DATABASE_URL"
+resolve_env_value() {
+  local var_name="$1"
+  local shell_value="${!var_name:-}"
+
+  if [[ -n "$shell_value" ]]; then
+    printf '%s' "$shell_value"
     return 0
   fi
   if [[ -n "${ENV_FILE}" ]]; then
-    read_database_url_from_env_file "${ENV_FILE}"
+    read_env_value_from_file "${ENV_FILE}" "$var_name"
     return $?
   fi
   return 1
+}
+
+resolve_database_url() {
+  resolve_env_value DATABASE_URL
 }
 
 rewrite_database_url_for_host_db() {
@@ -97,6 +107,18 @@ if ! RESOLVED_DATABASE_URL="$(resolve_database_url)"; then
   echo "Error: set DATABASE_URL or point ENV_FILE at a file containing it." >&2
   echo "  export DATABASE_URL='postgres://USER:PASSWORD@db-host:5432/worklog'" >&2
   echo "  or: ENV_FILE=/path/to/api.env $0" >&2
+  exit 1
+fi
+
+if ! RESOLVED_JWT_SECRET="$(resolve_env_value JWT_SECRET)"; then
+  echo "Error: set JWT_SECRET or point ENV_FILE at a file containing it." >&2
+  echo "  export JWT_SECRET='your-long-random-secret-at-least-32-chars'" >&2
+  echo "  or: ENV_FILE=/path/to/api.env $0" >&2
+  exit 1
+fi
+
+if ((${#RESOLVED_JWT_SECRET} < 32)); then
+  echo "Error: JWT_SECRET must be at least 32 characters." >&2
   exit 1
 fi
 
@@ -142,8 +164,9 @@ if [[ -n "${ENV_FILE}" ]]; then
   RUN_ARGS+=(--env-file "${ENV_FILE}")
 fi
 
-# After --env-file so a rewritten URL (USE_HOST_DB) wins over localhost in the file.
+# After --env-file so rewritten / shell values win over the file when both are set.
 RUN_ARGS+=(-e "DATABASE_URL=${RESOLVED_DATABASE_URL}")
+RUN_ARGS+=(-e "JWT_SECRET=${RESOLVED_JWT_SECRET}")
 
 if [[ -n "${DOCKER_NETWORK}" ]]; then
   RUN_ARGS+=(--network "${DOCKER_NETWORK}")
