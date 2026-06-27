@@ -11,6 +11,7 @@ use use_cases::{
     CreateTokenCommand, CreateTokenUseCase, CreateUserCommand, CreateUserUseCase,
     DeleteUserCommand, DeleteUserUseCase, DisableUserCommand, DisableUserUseCase,
     EnableUserCommand, EnableUserUseCase, RevokeTokenCommand, RevokeTokenUseCase,
+    SetPasswordCommand, SetPasswordUseCase,
 };
 use uuid::Uuid;
 
@@ -30,6 +31,8 @@ enum Command {
         name: String,
         #[arg(long)]
         email: Option<String>,
+        #[arg(long)]
+        password: Option<String>,
     },
     /// Mint a device token for a user (token printed once)
     CreateToken {
@@ -63,6 +66,13 @@ enum Command {
         #[arg(long)]
         user: Uuid,
     },
+    /// Set or reset a user's password
+    SetPassword {
+        #[arg(long)]
+        user: Uuid,
+        #[arg(long)]
+        password: String,
+    },
 }
 
 #[tokio::main]
@@ -89,10 +99,14 @@ async fn run() -> Result<(), String> {
     let token_repo = Arc::new(PostgresTokenRepository::new(pool));
 
     match cli.command {
-        Command::CreateUser { name, email } => {
+        Command::CreateUser { name, email, password } => {
             let use_case = CreateUserUseCase::new(Arc::clone(&user_repo));
             let response = use_case
-                .execute(CreateUserCommand { name, email })
+                .execute(CreateUserCommand {
+                    name,
+                    email,
+                    password,
+                })
                 .await
                 .map_err(|e| e.to_string())?;
             println!("user_id={}", response.id());
@@ -155,6 +169,17 @@ async fn run() -> Result<(), String> {
                 .await
                 .map_err(|e| e.to_string())?;
             println!("user soft-deleted");
+        }
+        Command::SetPassword { user, password } => {
+            let use_case = SetPasswordUseCase::new(Arc::clone(&user_repo));
+            use_case
+                .execute(SetPasswordCommand {
+                    user_id: UserId::from_uuid(user),
+                    password,
+                })
+                .await
+                .map_err(|e| e.to_string())?;
+            println!("password updated");
         }
     }
 

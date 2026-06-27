@@ -142,8 +142,11 @@ Run on a machine with database access (not on user laptops). Requires `DATABASE_
 export DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/worklog
 export WORKLOGGER_ADMIN_TOKEN=your-admin-secret
 
-# Create a user
-cargo run -p admin -- create-user --name "Alice" --email alice@team.local
+# Create a user (optional password for JWT login)
+cargo run -p admin -- create-user --name "Alice" --email alice@team.local --password secret
+
+# Set or reset a user's password
+cargo run -p admin -- set-password --user <user-uuid> --password secret
 
 # Mint a device token (printed once — give to the user for WORKLOGGER_TOKEN)
 cargo run -p admin -- create-token --user <user-uuid> --label "alice-laptop"
@@ -160,6 +163,58 @@ cargo run -p admin -- delete-user --user <user-uuid>
 
 Release binary: `cargo build -p admin --release` → `./target/release/worklogger-admin`
 
+### 6. JWT login (HTTP API)
+
+Users with a password can obtain JWT access and refresh tokens. Device tokens (`wl_*`) continue to work for the TUI/SDK.
+
+Apply the latest migration, set `JWT_SECRET` (at least 32 characters), then start the API:
+
+```bash
+export JWT_SECRET=your-long-random-secret-at-least-32-chars
+cargo run -p api
+```
+
+**Login** — email or username plus password:
+
+```bash
+curl -s -X POST http://127.0.0.1:3000/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"login":"alice@team.local","password":"secret"}'
+```
+
+Response:
+
+```json
+{
+  "access_token": "<jwt>",
+  "refresh_token": "rt_...",
+  "expires_in": 900,
+  "token_type": "Bearer"
+}
+```
+
+**Use access token** on worklog routes:
+
+```bash
+curl -H "Authorization: Bearer <access_token>" http://127.0.0.1:3000/worklogs
+```
+
+**Refresh** — rotates the refresh token:
+
+```bash
+curl -s -X POST http://127.0.0.1:3000/auth/refresh \
+  -H 'Content-Type: application/json' \
+  -d '{"refresh_token":"rt_..."}'
+```
+
+**Logout** — revokes the refresh token:
+
+```bash
+curl -X POST http://127.0.0.1:3000/auth/logout \
+  -H 'Content-Type: application/json' \
+  -d '{"refresh_token":"rt_..."}'
+```
+
 Optional environment variables:
 
 
@@ -171,6 +226,9 @@ Optional environment variables:
 | `WORKLOGGER_TOKEN`        | —            | TUI: device bearer token (required)      |
 | `WORKLOGGER_EXPORT_DIR`   | `~/Download` | TUI Excel export directory               |
 | `WORKLOGGER_ADMIN_TOKEN`  | —            | Admin CLI: required gate secret          |
+| `JWT_SECRET`              | —            | API: JWT signing secret (required, ≥32)  |
+| `JWT_ACCESS_TTL_SECS`     | `900`        | API: access token lifetime in seconds    |
+| `JWT_REFRESH_TTL_SECS`    | `2592000`    | API: refresh token lifetime (30 days)    |
 
 
 ## TUI guide

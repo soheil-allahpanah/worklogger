@@ -78,6 +78,12 @@ impl From<UseCaseError> for ApiError {
             UseCaseError::Auth(AuthError::InvalidToken) => {
                 Self::unauthorized("invalid or expired token")
             }
+            UseCaseError::Auth(AuthError::InvalidCredentials) => {
+                Self::unauthorized("invalid credentials")
+            }
+            UseCaseError::Auth(AuthError::PasswordNotSet) => {
+                Self::unauthorized("invalid credentials")
+            }
             UseCaseError::Auth(AuthError::UserInactive) => {
                 Self::forbidden("user account is disabled or deleted")
             }

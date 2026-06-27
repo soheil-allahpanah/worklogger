@@ -3,4 +3,5 @@
 pub struct CreateUserCommand {
     pub name: String,
     pub email: Option<String>,
+    pub password: Option<String>,
 }

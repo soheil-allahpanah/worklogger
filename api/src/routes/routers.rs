@@ -29,7 +29,11 @@ pub fn router(state: AppState) -> Router {
 
     Router::new()
         .route("/health", get(health))
+        .route("/auth/login", post(controllers::login))
+        .route("/auth/refresh", post(controllers::refresh))
+        .route("/auth/logout", post(controllers::logout))
         .merge(protected)
+        .with_state(state)
         .layer(TraceLayer::new_for_http())
 }
 

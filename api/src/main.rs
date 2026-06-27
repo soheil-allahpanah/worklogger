@@ -10,9 +10,11 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use infrastructure::postgres::{
-    connect, PostgresTokenRepository, PostgresUserRepository, PostgresWorklogRepository,
+    connect, PostgresRefreshTokenRepository, PostgresTokenRepository, PostgresUserRepository,
+    PostgresWorklogRepository,
 };
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use use_cases::JwtConfig;
 
 use crate::routes::router;
 use crate::state::AppState;
@@ -33,10 +35,19 @@ async fn main() {
         .await
         .expect("failed to connect to database");
 
+    let jwt_config = load_jwt_config();
+
     let worklog_repo = Arc::new(PostgresWorklogRepository::new(pool.clone()));
     let user_repo = Arc::new(PostgresUserRepository::new(pool.clone()));
-    let token_repo = Arc::new(PostgresTokenRepository::new(pool));
-    let state = AppState::new(worklog_repo, user_repo, token_repo);
+    let token_repo = Arc::new(PostgresTokenRepository::new(pool.clone()));
+    let refresh_token_repo = Arc::new(PostgresRefreshTokenRepository::new(pool));
+    let state = AppState::new(
+        worklog_repo,
+        user_repo,
+        token_repo,
+        refresh_token_repo,
+        jwt_config,
+    );
     let app = router(state);
 
     let host = std::env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
@@ -55,4 +66,26 @@ async fn main() {
     axum::serve(listener, app)
         .await
         .expect("server error");
+}
+
+fn load_jwt_config() -> JwtConfig {
+    let secret = std::env::var("JWT_SECRET").expect("JWT_SECRET must be set");
+    if secret.len() < 32 {
+        panic!("JWT_SECRET must be at least 32 characters");
+    }
+
+    let access_ttl_secs = std::env::var("JWT_ACCESS_TTL_SECS")
+        .ok()
+        .and_then(|value| value.parse().ok())
+        .unwrap_or(900);
+    let refresh_ttl_secs = std::env::var("JWT_REFRESH_TTL_SECS")
+        .ok()
+        .and_then(|value| value.parse().ok())
+        .unwrap_or(2_592_000);
+
+    JwtConfig {
+        secret,
+        access_ttl_secs,
+        refresh_ttl_secs,
+    }
 }

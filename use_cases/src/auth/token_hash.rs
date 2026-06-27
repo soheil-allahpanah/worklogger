@@ -2,10 +2,16 @@ use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
 const TOKEN_PREFIX: &str = "wl_";
+const REFRESH_TOKEN_PREFIX: &str = "rt_";
 
 /// Generates a new raw device token (shown once to the admin/user).
 pub fn generate_raw_token() -> String {
     format!("{TOKEN_PREFIX}{}", Uuid::new_v4().simple())
+}
+
+/// Generates a new raw refresh token (shown once to the client).
+pub fn generate_raw_refresh_token() -> String {
+    format!("{REFRESH_TOKEN_PREFIX}{}", Uuid::new_v4().simple())
 }
 
 /// SHA-256 hash stored in the database; never persist the raw token.

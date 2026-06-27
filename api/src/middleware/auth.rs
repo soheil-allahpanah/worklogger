@@ -14,7 +14,11 @@ pub async fn require_auth(
     next: Next,
 ) -> Result<Response, ApiError> {
     let token = extract_bearer_token(request.headers().get(AUTHORIZATION))?;
-    let actor = state.authenticate_token().execute(&token).await?;
+    let actor = if token.starts_with("wl_") {
+        state.authenticate_token().execute(&token).await?
+    } else {
+        state.authenticate_jwt().execute(&token).await?
+    };
     request.extensions_mut().insert(actor);
     Ok(next.run(request).await)
 }

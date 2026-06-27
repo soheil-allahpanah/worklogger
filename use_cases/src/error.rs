@@ -7,6 +7,10 @@ use uuid::Error as UuidError;
 pub enum AuthError {
     #[error("invalid or expired token")]
     InvalidToken,
+    #[error("invalid credentials")]
+    InvalidCredentials,
+    #[error("password is not set for this user")]
+    PasswordNotSet,
     #[error("user account is disabled or deleted")]
     UserInactive,
 }

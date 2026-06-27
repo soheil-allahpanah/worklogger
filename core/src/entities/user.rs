@@ -131,6 +131,15 @@ impl User {
         Ok(())
     }
 
+    pub fn set_password(&mut self, password_hash: String) -> DomainResult<()> {
+        if self.is_deleted() {
+            return Err(DomainError::UserDeleted);
+        }
+        self.password_hash = Some(password_hash);
+        self.touch();
+        Ok(())
+    }
+
     fn touch(&mut self) {
         self.updated_at = UpdatedAt::new(Utc::now());
     }

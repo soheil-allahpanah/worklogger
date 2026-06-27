@@ -1,5 +1,6 @@
 pub mod postgres;
 
 pub use postgres::{
-    connect, PostgresTokenRepository, PostgresUserRepository, PostgresWorklogRepository,
+    connect, PostgresRefreshTokenRepository, PostgresTokenRepository, PostgresUserRepository,
+    PostgresWorklogRepository,
 };

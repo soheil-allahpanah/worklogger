@@ -1,11 +1,11 @@
-use domain::entities::{ApiToken, User};
+use domain::entities::{ApiToken, RefreshToken, User};
 use domain::traits::RepositoryError;
 use domain::traits::RepositoryResult;
 use domain::value_objects::{
     CreatedAt, DeletedAt, DisabledAt, Email, RevokedAt, TokenId, UpdatedAt, UserId, UserName,
 };
 
-use super::user_row::{TokenRow, UserRow};
+use super::user_row::{RefreshTokenRow, TokenRow, UserRow};
 
 pub fn row_to_user(row: UserRow) -> RepositoryResult<User> {
     let name = UserName::try_new(row.name).map_err(|_| RepositoryError::QueryFailed)?;
@@ -32,6 +32,17 @@ pub fn row_to_token(row: TokenRow) -> RepositoryResult<ApiToken> {
         UserId::from_uuid(row.user_id),
         row.token_hash,
         row.label,
+        CreatedAt::new(row.created_at),
+        row.expires_at,
+        row.revoked_at.map(RevokedAt::new),
+    ))
+}
+
+pub fn row_to_refresh_token(row: RefreshTokenRow) -> RepositoryResult<RefreshToken> {
+    Ok(RefreshToken::reconstitute(
+        TokenId::from_uuid(row.id),
+        UserId::from_uuid(row.user_id),
+        row.token_hash,
         CreatedAt::new(row.created_at),
         row.expires_at,
         row.revoked_at.map(RevokedAt::new),

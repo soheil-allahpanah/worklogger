@@ -24,7 +24,14 @@ impl<R: UserRepository> CreateUserUseCase<R> {
             .map(|value| Email::try_new(value))
             .transpose()?;
 
-        let user = User::create(name, email);
+        let mut user = User::create(name, email);
+        if let Some(password) = command.password {
+            if password.is_empty() {
+                return Err(crate::error::AuthError::InvalidCredentials.into());
+            }
+            let password_hash = crate::auth::hash_password(&password)?;
+            user.set_password(password_hash)?;
+        }
         let id = user.id();
         let name = user.name().as_str().to_owned();
         self.user_repository.save(&user).await?;
