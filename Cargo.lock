@@ -2983,6 +2983,7 @@ dependencies = [
  "core",
  "jalali-rs",
  "jsonwebtoken",
+ "password-hash",
  "rust_xlsxwriter",
  "serde",
  "sha2",

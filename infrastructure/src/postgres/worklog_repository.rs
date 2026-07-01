@@ -22,6 +22,20 @@ const WORKLOG_SELECT: &str = r#"
     FROM worklogs
 "#;
 
+const WORKLOG_FILTER_WHERE: &str = r#"
+    WHERE deleted_at IS NULL
+      AND user_id = $1
+      AND ($2::uuid[] IS NULL OR id = ANY($2))
+      AND ($3::uuid[] IS NULL OR NOT (id = ANY($3)))
+      AND ($4::text[] IS NULL OR tags && $4)
+      AND ($5::text[] IS NULL OR NOT (tags && $5))
+      AND ($6::text IS NULL OR description ILIKE '%' || $6 || '%')
+      AND ($7::date IS NULL OR datetime::date >= $7)
+      AND ($8::date IS NULL OR datetime::date <= $8)
+      AND ($9::bigint IS NULL OR EXTRACT(EPOCH FROM duration)::bigint >= $9)
+      AND ($10::bigint IS NULL OR EXTRACT(EPOCH FROM duration)::bigint <= $10)
+"#;
+
 /// PostgreSQL implementation of [`WorklogRepository`].
 #[derive(Clone)]
 pub struct PostgresWorklogRepository {
@@ -97,35 +111,12 @@ impl WorklogRepository for PostgresWorklogRepository {
     async fn filter(&self, criteria: &WorklogFilterCriteria) -> RepositoryResult<Vec<Worklog>> {
         let binds = FilterBinds::from(criteria);
 
-        let rows = sqlx::query_as::<_, WorklogRow>(
-            r#"
-            SELECT
-                id,
-                user_id,
-                datetime,
-                EXTRACT(EPOCH FROM duration)::bigint AS duration_secs,
-                tags,
-                description,
-                created_at,
-                updated_at,
-                deleted_at
-            FROM worklogs
-            WHERE deleted_at IS NULL
-              AND user_id = $1
-              AND ($2::uuid[] IS NULL OR id = ANY($2))
-              AND ($3::uuid[] IS NULL OR NOT (id = ANY($3)))
-              AND ($4::text[] IS NULL OR tags && $4)
-              AND ($5::text[] IS NULL OR NOT (tags && $5))
-              AND ($6::text IS NULL OR description ILIKE '%' || $6 || '%')
-              AND ($7::date IS NULL OR datetime::date >= $7)
-              AND ($8::date IS NULL OR datetime::date <= $8)
-              AND ($9::bigint IS NULL OR EXTRACT(EPOCH FROM duration)::bigint >= $9)
-              AND ($10::bigint IS NULL OR EXTRACT(EPOCH FROM duration)::bigint <= $10)
+        let rows = sqlx::query_as::<_, WorklogRow>(&format!(
+            "{WORKLOG_SELECT}{WORKLOG_FILTER_WHERE}
             ORDER BY datetime DESC
             LIMIT $11
-            OFFSET $12
-            "#,
-        )
+            OFFSET $12"
+        ))
         .bind(binds.user_id)
         .bind(binds.ids_in.as_deref())
         .bind(binds.ids_not_in.as_deref())
@@ -143,6 +134,29 @@ impl WorklogRepository for PostgresWorklogRepository {
         .map_err(|_| RepositoryError::QueryFailed)?;
 
         rows.into_iter().map(row_to_worklog).collect()
+    }
+
+    async fn count(&self, criteria: &WorklogFilterCriteria) -> RepositoryResult<u64> {
+        let binds = FilterBinds::from(criteria);
+
+        let total: i64 = sqlx::query_scalar(&format!(
+            "SELECT COUNT(*)::bigint FROM worklogs{WORKLOG_FILTER_WHERE}"
+        ))
+        .bind(binds.user_id)
+        .bind(binds.ids_in.as_deref())
+        .bind(binds.ids_not_in.as_deref())
+        .bind(binds.tags_in.as_deref())
+        .bind(binds.tags_not_in.as_deref())
+        .bind(binds.description_contains.as_deref())
+        .bind(binds.date_from)
+        .bind(binds.date_to)
+        .bind(binds.duration_from_secs)
+        .bind(binds.duration_to_secs)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|_| RepositoryError::QueryFailed)?;
+
+        Ok(total as u64)
     }
 
     async fn delete(&self, user_id: UserId, id: WorklogId) -> RepositoryResult<()> {

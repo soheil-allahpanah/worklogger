@@ -52,6 +52,10 @@ pub fn view(frame: &mut Frame, app: &App, area: Rect) {
                 key: "j/k",
                 action: "NAVIGATE",
             },
+            Hint {
+                key: "[/]",
+                action: "PAGE",
+            },
         ],
         Mode::Search => &[
             Hint {

@@ -15,4 +15,5 @@ rust_xlsxwriter = "0.84"
 thiserror = "2"
 sha2 = "0.10"
 argon2 = "0.5"
+password-hash = { version = "0.5", features = ["getrandom"] }
 jsonwebtoken = "9"

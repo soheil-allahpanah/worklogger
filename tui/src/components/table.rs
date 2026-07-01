@@ -43,6 +43,8 @@ pub enum Msg {
     Quit,
     SelectNext,
     SelectPrev,
+    PageNext,
+    PagePrev,
     ApplySearch,
     Export,
     OpenSearch,
@@ -62,6 +64,8 @@ pub fn from_key(key: KeyEvent) -> Option<Msg> {
         KeyCode::Char('e') => Some(Msg::Export),
         KeyCode::Down | KeyCode::Char('j') => Some(Msg::SelectNext),
         KeyCode::Up | KeyCode::Char('k') => Some(Msg::SelectPrev),
+        KeyCode::Char(']') | KeyCode::PageDown => Some(Msg::PageNext),
+        KeyCode::Char('[') | KeyCode::PageUp => Some(Msg::PagePrev),
         KeyCode::Enter => Some(Msg::ApplySearch),
         _ => None,
     }
@@ -73,7 +77,24 @@ pub async fn update(app: &mut App, msg: Msg) -> io::Result<Outcome> {
         Msg::Quit => return Ok(Outcome::Quit),
         Msg::SelectNext => select_next(app),
         Msg::SelectPrev => select_prev(app),
-        Msg::ApplySearch => app.apply_search().await?,
+        Msg::PageNext => {
+            if app.current_page < app.total_pages {
+                app.current_page += 1;
+                app.apply_search().await?;
+                app.table_state.select(Some(0));
+            }
+        }
+        Msg::PagePrev => {
+            if app.current_page > 1 {
+                app.current_page -= 1;
+                app.apply_search().await?;
+                app.table_state.select(Some(0));
+            }
+        }
+        Msg::ApplySearch => {
+            app.reset_page();
+            app.apply_search().await?;
+        }
         Msg::Export => app.export_search_results().await?,
         Msg::OpenSearch => {
             app.mode = Mode::Search;

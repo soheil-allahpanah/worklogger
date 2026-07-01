@@ -10,6 +10,7 @@ pub trait WorklogRepository {
     async fn get(&self, user_id: UserId, id: WorklogId) -> RepositoryResult<Worklog>;
     async fn save(&self, worklog: &Worklog) -> RepositoryResult<()>;
     async fn filter(&self, criteria: &WorklogFilterCriteria) -> RepositoryResult<Vec<Worklog>>;
+    async fn count(&self, criteria: &WorklogFilterCriteria) -> RepositoryResult<u64>;
     async fn delete(&self, user_id: UserId, id: WorklogId) -> RepositoryResult<()>;
 }
 
@@ -25,6 +26,10 @@ impl<R: WorklogRepository> WorklogRepository for Arc<R> {
 
     async fn filter(&self, criteria: &WorklogFilterCriteria) -> RepositoryResult<Vec<Worklog>> {
         self.as_ref().filter(criteria).await
+    }
+
+    async fn count(&self, criteria: &WorklogFilterCriteria) -> RepositoryResult<u64> {
+        self.as_ref().count(criteria).await
     }
 
     async fn delete(&self, user_id: UserId, id: WorklogId) -> RepositoryResult<()> {

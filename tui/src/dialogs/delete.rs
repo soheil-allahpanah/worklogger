@@ -7,7 +7,7 @@ use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
     text::{Line, Span},
-    widgets::{block::Position, Block, BorderType, Borders, Paragraph},
+    widgets::{block::Position, Block, BorderType, Borders, Clear, Paragraph},
     Frame,
 };
 use sdk::DeleteWorklogCommand;
@@ -124,20 +124,22 @@ pub fn view(frame: &mut Frame, app: &App) {
         .border_type(BorderType::Plain)
         .border_style(Style::default().fg(theme::BORDER))
         .style(Style::default().bg(theme::SURFACE));
+
+    frame.render_widget(Clear, area);
+    let inner = block.inner(area);
     frame.render_widget(block, area);
 
-    let inner = theme::centered_rect(36, 22, frame.area());
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .margin(2)
         .constraints([Constraint::Percentage(55), Constraint::Percentage(45)])
         .split(inner);
 
     let confirmation = Paragraph::new(Line::from(vec![Span::styled(
         "Are you sure you want to delete this worklog?",
-        Style::default().fg(theme::TEXT),
+        Style::default().fg(theme::TEXT).bg(theme::SURFACE),
     )]))
-    .alignment(Alignment::Center);
+    .alignment(Alignment::Center)
+    .style(Style::default().bg(theme::SURFACE));
     frame.render_widget(confirmation, chunks[0]);
 
     let buttons = Layout::default()

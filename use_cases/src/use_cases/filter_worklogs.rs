@@ -20,7 +20,7 @@ impl<R: WorklogRepository> FilterWorklogsUsecase<R> {
     pub async fn execute(&self, command: FilterWorklogsCommand) -> UseCaseResult<FilterWorklogsResponse> {
         let criteria = command_to_filter_criteria(command)?;
         let items = self.repository.filter(&criteria).await?;
-        let total_items = items.len() as u64;
+        let total_items = self.repository.count(&criteria).await?;
         Ok(PageResult::new(
             items,
             total_items,

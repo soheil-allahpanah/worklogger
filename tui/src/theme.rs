@@ -2,7 +2,9 @@
 
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
-    style::Color,
+    style::{Color, Style},
+    widgets::{Block, Clear},
+    Frame,
 };
 
 pub const BG: Color = Color::Rgb(28, 28, 30);
@@ -67,4 +69,13 @@ pub fn centered_rect(percent_x: u16, percent_y: u16, area: Rect) -> Rect {
             Constraint::Percentage((100 - percent_x) / 2),
         ])
         .split(popup_layout[1])[1]
+}
+
+/// Clears `area` and fills it with a solid background color.
+pub fn fill_area(frame: &mut Frame, area: Rect, bg: Color) {
+    frame.render_widget(Clear, area);
+    frame.render_widget(
+        Block::default().style(Style::default().bg(bg)),
+        area,
+    );
 }

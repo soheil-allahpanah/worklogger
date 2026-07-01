@@ -41,6 +41,7 @@ pub async fn update(app: &mut App, msg: Msg) -> io::Result<Outcome> {
     match msg {
         Msg::Cancel => app.mode = Mode::Normal,
         Msg::Submit => {
+            app.reset_page();
             app.apply_search().await?;
             app.mode = Mode::Normal;
         }

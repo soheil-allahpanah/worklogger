@@ -25,6 +25,9 @@ use crate::message::{Msg, Outcome};
 use crate::search_dsl::parse_search_input;
 use crate::ui;
 
+/// Default number of worklogs fetched per API page.
+pub const DEFAULT_PAGE_SIZE: u32 = 40;
+
 /// The active screen / route. New pages can be added here in future iterations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mode {
@@ -33,6 +36,15 @@ pub enum Mode {
     AddModal,
     DeleteModal,
     OpenModal,
+}
+
+impl Mode {
+    pub fn is_modal(self) -> bool {
+        matches!(
+            self,
+            Mode::AddModal | Mode::DeleteModal | Mode::OpenModal
+        )
+    }
 }
 
 /// A worklog flattened into display strings for the table and detail views.
@@ -58,6 +70,9 @@ pub struct App {
     pub mode: Mode,
     pub rows: Vec<WorklogRow>,
     pub total_entries: usize,
+    pub current_page: u32,
+    pub total_pages: u32,
+    pub page_size: u32,
     pub table_state: TableState,
     pub search_input: String,
     pub cursor_visible: bool,
@@ -78,6 +93,9 @@ impl App {
             mode: Mode::Normal,
             rows: Vec::new(),
             total_entries: 0,
+            current_page: 1,
+            total_pages: 1,
+            page_size: DEFAULT_PAGE_SIZE,
             table_state: TableState::default(),
             search_input: String::new(),
             cursor_visible: true,
@@ -110,6 +128,8 @@ impl App {
     /// used by the search bar as well as the add/delete dialogs.
     pub async fn apply_search(&mut self) -> io::Result<()> {
         let mut command = parse_search_input(&self.search_input);
+        command.paging.page = self.current_page;
+        command.paging.size = self.page_size;
         if let Err(errors) = command.validate() {
             self.set_status(format!("Filter: {}", errors.join("; ")), 4);
             return Ok(());
@@ -118,17 +138,31 @@ impl App {
         match self.client.filter_worklogs(command).await {
             Ok(page) => {
                 self.total_entries = page.total_items as usize;
+                self.total_pages = page.total_pages.max(1);
+                self.current_page = page.current_page.max(1);
                 self.rows = page.items.iter().map(worklog_to_row).collect();
                 if self.rows.is_empty() {
                     self.table_state.select(None);
-                } else {
+                } else if self.table_state.selected().is_none() {
                     self.table_state.select(Some(0));
                 }
-                self.set_status(format!("{} worklog(s) matched", page.total_items), 2);
+                let status = if self.total_pages > 1 {
+                    format!(
+                        "{} worklog(s) matched · page {}/{}",
+                        page.total_items, self.current_page, self.total_pages
+                    )
+                } else {
+                    format!("{} worklog(s) matched", page.total_items)
+                };
+                self.set_status(status, 2);
             }
             Err(err) => self.set_status(sdk_error_message(&err), 4),
         }
         Ok(())
+    }
+
+    pub fn reset_page(&mut self) {
+        self.current_page = 1;
     }
 
     pub async fn reload_worklogs(&mut self) -> io::Result<()> {

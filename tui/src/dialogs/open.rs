@@ -7,7 +7,7 @@ use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
     text::{Line, Span},
-    widgets::{block::Position, Block, BorderType, Borders, Paragraph},
+    widgets::{block::Position, Block, BorderType, Borders, Clear, Paragraph},
     Frame,
 };
 
@@ -181,9 +181,11 @@ pub fn view(frame: &mut Frame, app: &App) {
         .border_type(BorderType::Plain)
         .border_style(Style::default().fg(theme::BORDER))
         .style(Style::default().bg(theme::SURFACE));
+
+    frame.render_widget(Clear, area);
+    let inner = block.inner(area);
     frame.render_widget(block, area);
 
-    let inner = Block::default().inner(area);
     let constraints: Vec<Constraint> = rows
         .iter()
         .map(|row| Constraint::Length(row_height(row.value_lines.len())))

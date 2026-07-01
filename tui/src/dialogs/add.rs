@@ -8,7 +8,7 @@ use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Modifier, Style},
     text::{Line, Span},
-    widgets::{block::Position, Block, BorderType, Borders, Paragraph},
+    widgets::{block::Position, Block, BorderType, Borders, Clear, Paragraph},
     Frame,
 };
 use sdk::CreateWorklogCommand;
@@ -180,12 +180,12 @@ pub fn view(frame: &mut Frame, app: &App) {
         .border_style(Style::default().fg(theme::BORDER))
         .style(Style::default().bg(theme::SURFACE));
 
+    frame.render_widget(Clear, area);
+    let inner = block.inner(area);
     frame.render_widget(block, area);
 
-    let inner = theme::centered_rect(43, 37, frame.area());
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .margin(2)
         .constraints([
             Constraint::Length(3),
             Constraint::Length(3),

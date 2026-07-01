@@ -5,7 +5,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout},
     style::{Modifier, Style, Stylize},
     text::{Line, Span},
-    widgets::{Block, BorderType, Borders, Paragraph, Wrap},
+    widgets::{Block, BorderType, Borders, Clear, Paragraph, Wrap},
     Frame,
 };
 
@@ -15,19 +15,32 @@ use crate::dialogs::{add, delete, open};
 use crate::theme;
 
 pub fn view(frame: &mut Frame, app: &mut App) {
-    let root = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(1),
-            Constraint::Min(3),
-            Constraint::Length(3),
-            Constraint::Length(1),
-        ])
-        .split(frame.area());
+    if app.mode.is_modal() {
+        draw_modal_screen(frame, app);
+    } else {
+        draw_main_screen(frame, app);
+    }
+
+    draw_status_toast(frame, app);
+}
+
+fn draw_main_screen(frame: &mut Frame, app: &mut App) {
+    let root = root_layout(frame.area());
 
     draw_title(frame, app, root[0]);
     table::view(frame, app, root[1]);
     search_bar::view(frame, app, root[2]);
+    help_bar::view(frame, app, root[3]);
+}
+
+fn draw_modal_screen(frame: &mut Frame, app: &mut App) {
+    theme::fill_area(frame, frame.area(), theme::BG);
+
+    let root = root_layout(frame.area());
+
+    draw_title(frame, app, root[0]);
+    theme::fill_area(frame, root[1], theme::BG);
+    theme::fill_area(frame, root[2], theme::BG);
     help_bar::view(frame, app, root[3]);
 
     match app.mode {
@@ -36,8 +49,19 @@ pub fn view(frame: &mut Frame, app: &mut App) {
         Mode::OpenModal => open::view(frame, app),
         Mode::Normal | Mode::Search => {}
     }
+}
 
-    draw_status_toast(frame, app);
+fn root_layout(area: ratatui::layout::Rect) -> [ratatui::layout::Rect; 4] {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(1),
+            Constraint::Min(3),
+            Constraint::Length(3),
+            Constraint::Length(1),
+        ])
+        .split(area);
+    [chunks[0], chunks[1], chunks[2], chunks[3]]
 }
 
 fn draw_title(frame: &mut Frame, app: &App, area: ratatui::layout::Rect) {
@@ -49,7 +73,7 @@ fn draw_title(frame: &mut Frame, app: &App, area: ratatui::layout::Rect) {
         Mode::OpenModal => "Entry Detail",
     };
 
-    let title = Line::from(vec![
+    let mut title_spans = vec![
         Span::styled(
             format!("WORK LOGGER v{version} "),
             Style::default()
@@ -63,8 +87,20 @@ fn draw_title(frame: &mut Frame, app: &App, area: ratatui::layout::Rect) {
             format!("{}", app.total_entries),
             Style::default().fg(theme::EMERALD).bold(),
         ),
-        Span::styled(" entries]", Style::default().fg(theme::MUTED)),
-    ]);
+        Span::styled(" entries", Style::default().fg(theme::MUTED)),
+    ];
+
+    if app.total_pages > 1 && !app.mode.is_modal() {
+        title_spans.push(Span::styled(" · page ", Style::default().fg(theme::MUTED)));
+        title_spans.push(Span::styled(
+            format!("{}/{}", app.current_page, app.total_pages),
+            Style::default().fg(theme::AMBER).bold(),
+        ));
+    }
+
+    title_spans.push(Span::styled("]", Style::default().fg(theme::MUTED)));
+
+    let title = Line::from(title_spans);
 
     let block = Paragraph::new(title)
         .alignment(ratatui::layout::Alignment::Center)
