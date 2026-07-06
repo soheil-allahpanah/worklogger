@@ -23,10 +23,17 @@ pub struct WorklogJson {
 }
 
 #[derive(Debug, Serialize)]
+pub struct WorklogFilterStatisticsJson {
+    pub total_duration_secs: u64,
+    pub days_worked: u64,
+}
+
+#[derive(Debug, Serialize)]
 pub struct WorklogPageJson {
     pub items: Vec<WorklogJson>,
     pub total_items: u64,
     pub total_pages: u32,
     pub current_page: u32,
     pub page_size: u32,
+    pub statistics: WorklogFilterStatisticsJson,
 }

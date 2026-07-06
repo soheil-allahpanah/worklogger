@@ -46,7 +46,15 @@ pub fn view(frame: &mut Frame, app: &App, area: Rect) {
             },
             Hint {
                 key: "e",
+                action: "EDIT",
+            },
+            Hint {
+                key: "x",
                 action: "EXPORT",
+            },
+            Hint {
+                key: "r",
+                action: "REFRESH",
             },
             Hint {
                 key: "j/k",
@@ -68,6 +76,20 @@ pub fn view(frame: &mut Frame, app: &App, area: Rect) {
             },
         ],
         Mode::AddModal => &[
+            Hint {
+                key: "Tab",
+                action: "NEXT FIELD",
+            },
+            Hint {
+                key: "Enter",
+                action: "SAVE",
+            },
+            Hint {
+                key: "Esc",
+                action: "CANCEL",
+            },
+        ],
+        Mode::EditModal => &[
             Hint {
                 key: "Tab",
                 action: "NEXT FIELD",

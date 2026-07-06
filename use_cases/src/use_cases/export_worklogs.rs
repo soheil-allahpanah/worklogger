@@ -31,7 +31,8 @@ impl<R: WorklogRepository> ExportWorklogsUsecase<R> {
             size: EXPORT_MAX_ROWS,
         };
 
-        let items = self.repository.filter(&criteria).await?;
+        let result = self.repository.filter(&criteria).await?;
+        let items = result.items;
         let row_count = items.len();
         let bytes = worklogs_to_xlsx(&items)?;
         let filename = export_filename();

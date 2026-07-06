@@ -9,18 +9,18 @@ pub mod use_cases;
 pub use auth::JwtConfig;
 pub use dtos::commands::{
     CreateTokenCommand, CreateUserCommand, CreateWorklogCommand, DeleteUserCommand,
-    DeleteWorklogCommand, DisableUserCommand, EnableUserCommand, FilterWorklogsCommand,
-    GetWorklogCommand, LoginCommand, RefreshAccessTokenCommand, RevokeRefreshTokenCommand,
-    RevokeTokenCommand, SetPasswordCommand,
+    DeleteWorklogCommand, DisableUserCommand, EditWorklogCommand, EnableUserCommand,
+    FilterWorklogsCommand, GetWorklogCommand, LoginCommand, RefreshAccessTokenCommand,
+    RevokeRefreshTokenCommand, RevokeTokenCommand, SetPasswordCommand,
 };
 pub use dtos::responses::{
     AuthTokensResponse, CreateTokenResponse, CreateUserResponse, CreateWorklogResponse,
-    ExportWorklogsResponse,
+    ExportWorklogsResponse, FilterWorklogsResponse, WorklogFilterStatistics,
 };
 pub use use_cases::{
     AuthenticateJwtUseCase, AuthenticateTokenUseCase, CreateTokenUseCase, CreateUserUseCase,
     CreateWorklogUseCase, DeleteUserUseCase, DeleteWorklogUseCase, DisableUserUseCase,
-    EnableUserUseCase, ExportWorklogsUsecase, FilterWorklogsUsecase, GetWorklogUseCase,
-    LoginUseCase, RefreshAccessTokenUseCase, RevokeRefreshTokenUseCase, RevokeTokenUseCase,
-    SetPasswordUseCase,
+    EditWorklogUseCase, EnableUserUseCase, ExportWorklogsUsecase, FilterWorklogsUsecase,
+    GetWorklogUseCase, LoginUseCase, RefreshAccessTokenUseCase, RevokeRefreshTokenUseCase,
+    RevokeTokenUseCase, SetPasswordUseCase,
 };

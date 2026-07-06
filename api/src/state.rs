@@ -6,8 +6,8 @@ use infrastructure::postgres::{
 };
 use use_cases::{
     AuthenticateJwtUseCase, AuthenticateTokenUseCase, CreateTokenUseCase, CreateUserUseCase,
-    CreateWorklogUseCase, DeleteWorklogUseCase, ExportWorklogsUsecase, FilterWorklogsUsecase,
-    GetWorklogUseCase, JwtConfig, LoginUseCase, RefreshAccessTokenUseCase,
+    CreateWorklogUseCase, DeleteWorklogUseCase, EditWorklogUseCase, ExportWorklogsUsecase,
+    FilterWorklogsUsecase, GetWorklogUseCase, JwtConfig, LoginUseCase, RefreshAccessTokenUseCase,
     RevokeRefreshTokenUseCase,
 };
 
@@ -24,6 +24,7 @@ pub struct AppState {
 struct Inner {
     create_worklog: CreateWorklogUseCase<WorklogRepo>,
     get_worklog: GetWorklogUseCase<WorklogRepo>,
+    edit_worklog: EditWorklogUseCase<WorklogRepo>,
     delete_worklog: DeleteWorklogUseCase<WorklogRepo>,
     filter_worklogs: FilterWorklogsUsecase<WorklogRepo>,
     export_worklogs: ExportWorklogsUsecase<WorklogRepo>,
@@ -48,6 +49,7 @@ impl AppState {
             inner: Arc::new(Inner {
                 create_worklog: CreateWorklogUseCase::new(Arc::clone(&worklog_repo)),
                 get_worklog: GetWorklogUseCase::new(Arc::clone(&worklog_repo)),
+                edit_worklog: EditWorklogUseCase::new(Arc::clone(&worklog_repo)),
                 delete_worklog: DeleteWorklogUseCase::new(Arc::clone(&worklog_repo)),
                 filter_worklogs: FilterWorklogsUsecase::new(Arc::clone(&worklog_repo)),
                 export_worklogs: ExportWorklogsUsecase::new(worklog_repo),
@@ -82,6 +84,10 @@ impl AppState {
 
     pub fn get_worklog(&self) -> &GetWorklogUseCase<WorklogRepo> {
         &self.inner.get_worklog
+    }
+
+    pub fn edit_worklog(&self) -> &EditWorklogUseCase<WorklogRepo> {
+        &self.inner.edit_worklog
     }
 
     pub fn delete_worklog(&self) -> &DeleteWorklogUseCase<WorklogRepo> {

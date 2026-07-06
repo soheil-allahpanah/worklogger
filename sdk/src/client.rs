@@ -6,8 +6,8 @@ use domain::value_objects::WorklogId;
 use reqwest::{header, Client, RequestBuilder, StatusCode};
 use url::Url;
 use use_cases::{
-    CreateWorklogCommand, CreateWorklogResponse, DeleteWorklogCommand, ExportWorklogsResponse,
-    FilterWorklogsCommand, GetWorklogCommand,
+    CreateWorklogCommand, CreateWorklogResponse, DeleteWorklogCommand, EditWorklogCommand,
+    ExportWorklogsResponse, FilterWorklogsCommand, FilterWorklogsResponse, GetWorklogCommand,
 };
 
 use crate::api_types::{CreateWorklogJson, ErrorBody, WorklogJson, WorklogPageJson};
@@ -83,7 +83,7 @@ impl WorkloggerClient {
     pub async fn filter_worklogs(
         &self,
         mut command: FilterWorklogsCommand,
-    ) -> SdkResult<PageResult<Worklog>> {
+    ) -> SdkResult<FilterWorklogsResponse> {
         if let Err(errors) = command.validate() {
             return Err(SdkError::Validation(errors.join("; ")));
         }
@@ -102,6 +102,27 @@ impl WorkloggerClient {
 
         let page: WorklogPageJson = self.handle_response(response).await?;
         page_to_result(page)
+    }
+
+    pub async fn edit_worklog(&self, command: EditWorklogCommand) -> SdkResult<Worklog> {
+        command
+            .validate()
+            .map_err(|e| SdkError::Validation(e.to_string()))?;
+
+        let url = self
+            .base_url
+            .join(&format!("worklogs/{}", command.id))
+            .map_err(map_url_error)?;
+        let body = EditWorklogBody::from(&command);
+        let response = self
+            .authed(self.http.put(url))
+            .json(&body)
+            .send()
+            .await
+            .map_err(map_network_error)?;
+
+        let json: WorklogJson = self.handle_response(response).await?;
+        json_to_worklog(json)
     }
 
     pub async fn get_worklog(&self, command: GetWorklogCommand) -> SdkResult<Worklog> {
@@ -242,18 +263,24 @@ impl WorkloggerClient {
     }
 }
 
-fn page_to_result(page: WorklogPageJson) -> SdkResult<PageResult<Worklog>> {
+fn page_to_result(page: WorklogPageJson) -> SdkResult<FilterWorklogsResponse> {
     let items = page
         .items
         .into_iter()
         .map(json_to_worklog)
         .collect::<SdkResult<Vec<_>>>()?;
-    Ok(PageResult::new(
-        items,
-        page.total_items,
-        page.current_page,
-        page.page_size,
-    ))
+    Ok(FilterWorklogsResponse {
+        page: PageResult::new(
+            items,
+            page.total_items,
+            page.current_page,
+            page.page_size,
+        ),
+        statistics: use_cases::WorklogFilterStatistics {
+            total_duration_secs: page.statistics.total_duration_secs,
+            days_worked: page.statistics.days_worked,
+        },
+    })
 }
 
 #[derive(serde::Serialize)]
@@ -266,6 +293,25 @@ struct CreateWorklogBody {
 
 impl From<&CreateWorklogCommand> for CreateWorklogBody {
     fn from(command: &CreateWorklogCommand) -> Self {
+        Self {
+            jalali_date: command.jalali_date.clone(),
+            duration_secs: command.duration_secs,
+            tags: command.tags.clone(),
+            description: command.description.clone(),
+        }
+    }
+}
+
+#[derive(serde::Serialize)]
+struct EditWorklogBody {
+    jalali_date: Option<String>,
+    duration_secs: u64,
+    tags: Vec<String>,
+    description: String,
+}
+
+impl From<&EditWorklogCommand> for EditWorklogBody {
+    fn from(command: &EditWorklogCommand) -> Self {
         Self {
             jalali_date: command.jalali_date.clone(),
             duration_secs: command.duration_secs,
@@ -353,7 +399,11 @@ mod tests {
                 "total_items": 0,
                 "total_pages": 0,
                 "current_page": 1,
-                "page_size": 20
+                "page_size": 20,
+                "statistics": {
+                    "total_duration_secs": 0,
+                    "days_worked": 0
+                }
             })))
             .mount(&server)
             .await;
@@ -368,8 +418,8 @@ mod tests {
             duration: None,
             paging: common::pagination::PagingParams::default(),
         };
-        let page = client.filter_worklogs(command).await.unwrap();
-        assert!(page.items.is_empty());
+        let response = client.filter_worklogs(command).await.unwrap();
+        assert!(response.page.items.is_empty());
     }
 
     #[tokio::test]

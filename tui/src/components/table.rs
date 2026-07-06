@@ -15,7 +15,7 @@ use ratatui::{
 use sdk::GetWorklogCommand;
 
 use crate::app::{command_user_id, worklog_to_row, App, Mode};
-use crate::dialogs::{add, delete};
+use crate::dialogs::{add, delete, edit};
 use crate::format::styled_tags_line;
 use crate::message::Outcome;
 use crate::theme;
@@ -49,8 +49,10 @@ pub enum Msg {
     Export,
     OpenSearch,
     OpenAdd,
+    OpenEdit,
     OpenDelete,
     OpenDetail,
+    Refresh,
 }
 
 /// Translates a key press into a list-screen message.
@@ -61,7 +63,9 @@ pub fn from_key(key: KeyEvent) -> Option<Msg> {
         KeyCode::Char('d') => Some(Msg::OpenDelete),
         KeyCode::Char('o') => Some(Msg::OpenDetail),
         KeyCode::Char('n') | KeyCode::Char('a') => Some(Msg::OpenAdd),
-        KeyCode::Char('e') => Some(Msg::Export),
+        KeyCode::Char('e') => Some(Msg::OpenEdit),
+        KeyCode::Char('x') => Some(Msg::Export),
+        KeyCode::Char('r') | KeyCode::F(5) => Some(Msg::Refresh),
         KeyCode::Down | KeyCode::Char('j') => Some(Msg::SelectNext),
         KeyCode::Up | KeyCode::Char('k') => Some(Msg::SelectPrev),
         KeyCode::Char(']') | KeyCode::PageDown => Some(Msg::PageNext),
@@ -96,6 +100,10 @@ pub async fn update(app: &mut App, msg: Msg) -> io::Result<Outcome> {
             app.apply_search().await?;
         }
         Msg::Export => app.export_search_results().await?,
+        Msg::Refresh => {
+            app.reload_worklogs().await?;
+            app.set_status("Refreshed".into(), 2);
+        }
         Msg::OpenSearch => {
             app.mode = Mode::Search;
             app.cursor_visible = true;
@@ -104,6 +112,27 @@ pub async fn update(app: &mut App, msg: Msg) -> io::Result<Outcome> {
             app.add = add::Model::fresh();
             app.mode = Mode::AddModal;
             app.cursor_visible = true;
+        }
+        Msg::OpenEdit => {
+            if let Some(id) = selected_id(app) {
+                match app
+                    .client
+                    .get_worklog(GetWorklogCommand {
+                        user_id: command_user_id(),
+                        id,
+                    })
+                    .await
+                {
+                    Ok(worklog) => {
+                        app.edit = edit::Model::from_worklog(&worklog);
+                        app.mode = Mode::EditModal;
+                        app.cursor_visible = true;
+                    }
+                    Err(err) => {
+                        app.set_status(err.to_string(), 4);
+                    }
+                }
+            }
         }
         Msg::OpenDelete => {
             if let Some(id) = selected_id(app) {

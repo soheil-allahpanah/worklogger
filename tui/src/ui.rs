@@ -9,9 +9,9 @@ use ratatui::{
     Frame,
 };
 
-use crate::app::{App, Mode};
+use crate::app::{format_total_duration_secs, App, Mode};
 use crate::components::{help_bar, search_bar, table};
-use crate::dialogs::{add, delete, open};
+use crate::dialogs::{add, delete, edit, open};
 use crate::theme;
 
 pub fn view(frame: &mut Frame, app: &mut App) {
@@ -45,6 +45,7 @@ fn draw_modal_screen(frame: &mut Frame, app: &mut App) {
 
     match app.mode {
         Mode::AddModal => add::view(frame, app),
+        Mode::EditModal => edit::view(frame, app),
         Mode::DeleteModal => delete::view(frame, app),
         Mode::OpenModal => open::view(frame, app),
         Mode::Normal | Mode::Search => {}
@@ -69,6 +70,7 @@ fn draw_title(frame: &mut Frame, app: &App, area: ratatui::layout::Rect) {
     let view_name = match app.mode {
         Mode::Normal | Mode::Search => "Main View",
         Mode::AddModal => "Add Entry",
+        Mode::EditModal => "Edit Entry",
         Mode::DeleteModal => "Delete Entry",
         Mode::OpenModal => "Entry Detail",
     };
@@ -89,6 +91,23 @@ fn draw_title(frame: &mut Frame, app: &App, area: ratatui::layout::Rect) {
         ),
         Span::styled(" entries", Style::default().fg(theme::MUTED)),
     ];
+
+    let duration_label = format_total_duration_secs(app.total_duration_secs);
+    let days_label = if app.days_worked == 1 {
+        "1 day".to_string()
+    } else {
+        format!("{} days", app.days_worked)
+    };
+    title_spans.push(Span::styled(" · ", Style::default().fg(theme::MUTED)));
+    title_spans.push(Span::styled(
+        duration_label,
+        Style::default().fg(theme::EMERALD).bold(),
+    ));
+    title_spans.push(Span::styled(" over ", Style::default().fg(theme::MUTED)));
+    title_spans.push(Span::styled(
+        days_label,
+        Style::default().fg(theme::EMERALD).bold(),
+    ));
 
     if app.total_pages > 1 && !app.mode.is_modal() {
         title_spans.push(Span::styled(" · page ", Style::default().fg(theme::MUTED)));

@@ -2,7 +2,7 @@ use common::pagination::PageResult;
 use domain::traits::WorklogRepository;
 
 use crate::dtos::commands::FilterWorklogsCommand;
-use crate::dtos::responses::FilterWorklogsResponse;
+use crate::dtos::responses::{FilterWorklogsResponse, WorklogFilterStatistics};
 use crate::error::UseCaseResult;
 use crate::mappers::command_to_filter_criteria;
     
@@ -19,13 +19,18 @@ impl<R: WorklogRepository> FilterWorklogsUsecase<R> {
 impl<R: WorklogRepository> FilterWorklogsUsecase<R> {
     pub async fn execute(&self, command: FilterWorklogsCommand) -> UseCaseResult<FilterWorklogsResponse> {
         let criteria = command_to_filter_criteria(command)?;
-        let items = self.repository.filter(&criteria).await?;
-        let total_items = self.repository.count(&criteria).await?;
-        Ok(PageResult::new(
-            items,
-            total_items,
-            criteria.paging.page,
-            criteria.paging.size,
-        ))
+        let result = self.repository.filter(&criteria).await?;
+        Ok(FilterWorklogsResponse {
+            page: PageResult::new(
+                result.items,
+                result.total_items,
+                criteria.paging.page,
+                criteria.paging.size,
+            ),
+            statistics: WorklogFilterStatistics {
+                total_duration_secs: result.total_duration_secs,
+                days_worked: result.days_worked,
+            },
+        })
     }
 }

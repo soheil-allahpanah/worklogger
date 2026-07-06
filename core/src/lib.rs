@@ -3,5 +3,6 @@ pub mod bootstrap;
 pub mod criteria;
 pub mod entities;
 pub mod error;
+pub mod results;
 pub mod traits;
 pub mod value_objects;

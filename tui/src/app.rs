@@ -18,7 +18,7 @@ use tokio::runtime::Handle;
 use uuid::Uuid;
 
 use crate::components::{search_bar, table};
-use crate::dialogs::{add, delete, open};
+use crate::dialogs::{add, delete, edit, open};
 use crate::export::{export_dir, write_export_file};
 use crate::format::{format_duration, jalali_date_string};
 use crate::message::{Msg, Outcome};
@@ -26,7 +26,7 @@ use crate::search_dsl::parse_search_input;
 use crate::ui;
 
 /// Default number of worklogs fetched per API page.
-pub const DEFAULT_PAGE_SIZE: u32 = 40;
+pub const DEFAULT_PAGE_SIZE: u32 = 30;
 
 /// The active screen / route. New pages can be added here in future iterations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -34,6 +34,7 @@ pub enum Mode {
     Normal,
     Search,
     AddModal,
+    EditModal,
     DeleteModal,
     OpenModal,
 }
@@ -42,7 +43,7 @@ impl Mode {
     pub fn is_modal(self) -> bool {
         matches!(
             self,
-            Mode::AddModal | Mode::DeleteModal | Mode::OpenModal
+            Mode::AddModal | Mode::EditModal | Mode::DeleteModal | Mode::OpenModal
         )
     }
 }
@@ -70,6 +71,8 @@ pub struct App {
     pub mode: Mode,
     pub rows: Vec<WorklogRow>,
     pub total_entries: usize,
+    pub total_duration_secs: u64,
+    pub days_worked: u64,
     pub current_page: u32,
     pub total_pages: u32,
     pub page_size: u32,
@@ -82,6 +85,7 @@ pub struct App {
 
     // Per-dialog state.
     pub add: add::Model,
+    pub edit: edit::Model,
     pub delete: delete::Model,
     pub open: open::Model,
 }
@@ -93,6 +97,8 @@ impl App {
             mode: Mode::Normal,
             rows: Vec::new(),
             total_entries: 0,
+            total_duration_secs: 0,
+            days_worked: 0,
             current_page: 1,
             total_pages: 1,
             page_size: DEFAULT_PAGE_SIZE,
@@ -103,6 +109,7 @@ impl App {
             status_message: None,
             status_clear_at: None,
             add: add::Model::fresh(),
+            edit: edit::Model::default(),
             delete: delete::Model::default(),
             open: open::Model::default(),
         };
@@ -136,8 +143,11 @@ impl App {
         }
 
         match self.client.filter_worklogs(command).await {
-            Ok(page) => {
+            Ok(response) => {
+                let page = response.page;
                 self.total_entries = page.total_items as usize;
+                self.total_duration_secs = response.statistics.total_duration_secs;
+                self.days_worked = response.statistics.days_worked;
                 self.total_pages = page.total_pages.max(1);
                 self.current_page = page.current_page.max(1);
                 self.rows = page.items.iter().map(worklog_to_row).collect();
@@ -215,6 +225,7 @@ pub fn from_key(app: &App, key: KeyEvent) -> Option<Msg> {
         Mode::Normal => table::from_key(key).map(Msg::Table),
         Mode::Search => search_bar::from_key(key).map(Msg::Search),
         Mode::AddModal => add::from_key(key).map(Msg::Add),
+        Mode::EditModal => edit::from_key(key).map(Msg::Edit),
         Mode::DeleteModal => delete::from_key(key).map(Msg::Delete),
         Mode::OpenModal => open::from_key(key).map(Msg::Open),
     }
@@ -231,9 +242,27 @@ pub async fn update(app: &mut App, msg: Msg) -> io::Result<Outcome> {
         Msg::Table(m) => table::update(app, m).await,
         Msg::Search(m) => search_bar::update(app, m).await,
         Msg::Add(m) => add::update(app, m).await,
+        Msg::Edit(m) => edit::update(app, m).await,
         Msg::Delete(m) => delete::update(app, m).await,
         Msg::Open(m) => open::update(app, m).await,
     }
+}
+
+pub(crate) fn format_total_duration_secs(secs: u64) -> String {
+    let h = secs / 3600;
+    let m = (secs % 3600) / 60;
+    let s = secs % 60;
+    let mut parts = Vec::new();
+    if h > 0 {
+        parts.push(format!("{h}h"));
+    }
+    if m > 0 {
+        parts.push(format!("{m}m"));
+    }
+    if s > 0 || parts.is_empty() {
+        parts.push(format!("{s}s"));
+    }
+    parts.join("")
 }
 
 /// Flattens a domain [`Worklog`] into a display [`WorklogRow`].

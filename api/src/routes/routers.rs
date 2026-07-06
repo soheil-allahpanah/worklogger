@@ -22,7 +22,9 @@ pub fn router(state: AppState) -> Router {
         )
         .route(
             "/worklogs/{id}",
-            get(controllers::get).delete(controllers::delete),
+            get(controllers::get)
+                .put(controllers::edit)
+                .delete(controllers::delete),
         )
         .route_layer(from_fn_with_state(state.clone(), require_auth))
         .with_state(state.clone());

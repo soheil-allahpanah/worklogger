@@ -10,4 +10,4 @@ pub use create_worklog::CreateWorklogResponse;
 pub use create_token::CreateTokenResponse;
 pub use create_user::CreateUserResponse;
 pub use export_worklogs::ExportWorklogsResponse;
-pub use filter_worklogs::FilterWorklogsResponse;
+pub use filter_worklogs::{FilterWorklogsResponse, WorklogFilterStatistics};

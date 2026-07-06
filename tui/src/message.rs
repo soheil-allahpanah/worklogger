@@ -6,7 +6,7 @@
 //! [`Msg`] simply routes to the active one.
 
 use crate::components::{search_bar, table};
-use crate::dialogs::{add, delete, open};
+use crate::dialogs::{add, delete, edit, open};
 
 /// A message describing something that happened (a key press, a tick, etc.).
 #[derive(Debug, Clone)]
@@ -23,6 +23,8 @@ pub enum Msg {
     Add(add::Msg),
     /// A message for the "delete worklog" dialog.
     Delete(delete::Msg),
+    /// A message for the "edit worklog" dialog.
+    Edit(edit::Msg),
     /// A message for the "open worklog details" dialog.
     Open(open::Msg),
 }
