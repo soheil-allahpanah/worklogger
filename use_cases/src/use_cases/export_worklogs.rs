@@ -3,7 +3,7 @@ use common::pagination::PagingParams;
 use domain::traits::WorklogRepository;
 
 use crate::dtos::commands::FilterWorklogsCommand;
-use crate::dtos::responses::ExportWorklogsResponse;
+use crate::dtos::responses::{ExportWorklogsResponse, WorklogFilterStatistics};
 use crate::error::UseCaseResult;
 use crate::export::worklogs_to_xlsx;
 use crate::mappers::command_to_filter_criteria;
@@ -34,7 +34,11 @@ impl<R: WorklogRepository> ExportWorklogsUsecase<R> {
         let result = self.repository.filter(&criteria).await?;
         let items = result.items;
         let row_count = items.len();
-        let bytes = worklogs_to_xlsx(&items)?;
+        let statistics = WorklogFilterStatistics {
+            total_duration_secs: result.total_duration_secs,
+            days_worked: result.days_worked,
+        };
+        let bytes = worklogs_to_xlsx(&items, &statistics)?;
         let filename = export_filename();
 
         Ok(ExportWorklogsResponse::new(

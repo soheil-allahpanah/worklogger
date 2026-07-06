@@ -2,6 +2,7 @@ use chrono::Utc;
 use domain::entities::Worklog;
 use rust_xlsxwriter::{Color, Format, Workbook, Worksheet, XlsxError};
 
+use crate::dtos::responses::WorklogFilterStatistics;
 use crate::error::{UseCaseError, UseCaseResult};
 use crate::export::styles::{tag_color_index, ExportStyles};
 use crate::export::worklog_display::{
@@ -23,13 +24,16 @@ const ID_COLOR: Color = Color::RGB(0x78_7C_84);
 const DATE_COLOR: Color = Color::RGB(0x2E_7D_52);
 const DURATION_COLOR: Color = Color::RGB(0x2B_5C_9A);
 
-pub fn worklogs_to_xlsx(worklogs: &[Worklog]) -> UseCaseResult<Vec<u8>> {
+pub fn worklogs_to_xlsx(
+    worklogs: &[Worklog],
+    statistics: &WorklogFilterStatistics,
+) -> UseCaseResult<Vec<u8>> {
     let mut workbook = Workbook::new();
     let styles = ExportStyles::new();
     let worksheet = workbook.add_worksheet();
 
     configure_sheet(worksheet, worklogs.len())?;
-    write_title_row(worksheet, worklogs.len(), &styles)?;
+    write_title_row(worksheet, worklogs.len(), statistics, &styles)?;
     write_headers(worksheet, &styles)?;
     write_rows(worksheet, worklogs, &styles)?;
 
@@ -67,13 +71,26 @@ fn configure_sheet(worksheet: &mut Worksheet, row_count: usize) -> UseCaseResult
     Ok(())
 }
 
+fn format_days_worked(days: u64) -> String {
+    if days == 1 {
+        "1 day".to_string()
+    } else {
+        format!("{days} days")
+    }
+}
+
 fn write_title_row(
     worksheet: &mut Worksheet,
     row_count: usize,
+    statistics: &WorklogFilterStatistics,
     styles: &ExportStyles,
 ) -> UseCaseResult<()> {
     let exported_at = Utc::now().format("%Y-%m-%d %H:%M UTC");
-    let title = format!("Worklogger — {row_count} worklog(s) · exported {exported_at}");
+    let duration = format_duration_secs(statistics.total_duration_secs);
+    let days = format_days_worked(statistics.days_worked);
+    let title = format!(
+        "Worklogger — {row_count} worklog(s) · {duration} over {days} · exported {exported_at}"
+    );
 
     xlsx(worksheet.merge_range(
         TITLE_ROW,
