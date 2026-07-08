@@ -5,7 +5,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout},
     style::{Modifier, Style, Stylize},
     text::{Line, Span},
-    widgets::{Block, BorderType, Borders, Clear, Paragraph, Wrap},
+    widgets::{Paragraph, Wrap},
     Frame,
 };
 
@@ -52,17 +52,37 @@ fn draw_modal_screen(frame: &mut Frame, app: &mut App) {
     }
 }
 
+const SEARCH_BAR_HEIGHT: u16 = 3;
+const HELP_BAR_HEIGHT: u16 = 1;
+const TITLE_ROW_HEIGHT: u16 = 1;
+const TOAST_HEIGHT: u16 = SEARCH_BAR_HEIGHT; // ~1.5× search bar
+
 fn root_layout(area: ratatui::layout::Rect) -> [ratatui::layout::Rect; 4] {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(1),
+            Constraint::Length(TITLE_ROW_HEIGHT),
             Constraint::Min(3),
-            Constraint::Length(3),
-            Constraint::Length(1),
+            Constraint::Length(SEARCH_BAR_HEIGHT),
+            Constraint::Length(HELP_BAR_HEIGHT),
         ])
         .split(area);
     [chunks[0], chunks[1], chunks[2], chunks[3]]
+}
+
+/// Full-width toast strip sitting directly above the search bar.
+fn toast_rect(area: ratatui::layout::Rect) -> ratatui::layout::Rect {
+    let bottom_reserved = HELP_BAR_HEIGHT + SEARCH_BAR_HEIGHT;
+    let height = TOAST_HEIGHT.min(area.height.saturating_sub(bottom_reserved));
+    let y = area
+        .y
+        .saturating_add(area.height.saturating_sub(bottom_reserved + height));
+    ratatui::layout::Rect {
+        x: area.x,
+        y,
+        width: area.width,
+        height,
+    }
 }
 
 fn draw_title(frame: &mut Frame, app: &App, area: ratatui::layout::Rect) {
@@ -132,15 +152,16 @@ fn draw_status_toast(frame: &mut Frame, app: &App) {
         return;
     };
 
-    let area = theme::centered_rect(60, 20, frame.area());
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .border_type(BorderType::Plain)
-        .border_style(Style::default().fg(theme::BORDER))
-        .style(Style::default().bg(theme::SURFACE));
+    let area = toast_rect(frame.area());
+    if area.height == 0 || area.width == 0 {
+        return;
+    }
+
+    theme::fill_area(frame, area, theme::EMERALD);
+
     let text = Paragraph::new(msg)
-        .style(Style::default().fg(theme::TEXT))
-        .block(block)
+        .alignment(ratatui::layout::Alignment::Center)
+        .style(Style::default().fg(theme::BG).bg(theme::EMERALD))
         .wrap(Wrap { trim: true });
     frame.render_widget(text, area);
 }
