@@ -1,0 +1,214 @@
+/* Print / screen stylesheet for Worklogger tutorial */
+
+:root {
+  --bg: #fafaf8;
+  --fg: #1a1a1a;
+  --muted: #555;
+  --border: #d0d0c8;
+  --code-bg: #f0f0eb;
+  --accent: #0b6e4f;
+  --table-head: #e8eee9;
+}
+
+@media screen {
+  body {
+    max-width: 52rem;
+    margin: 2rem auto;
+    padding: 0 1.25rem 4rem;
+    background: var(--bg);
+  }
+}
+
+html {
+  font-size: 11pt;
+}
+
+body {
+  font-family: "Source Serif 4", "Libertinus Serif", "Noto Serif", "DejaVu Serif", Georgia, serif;
+  line-height: 1.55;
+  color: var(--fg);
+  background: #fff;
+}
+
+h1, h2, h3, h4 {
+  font-family: "IBM Plex Sans", "Source Sans 3", "DejaVu Sans", "Noto Sans", sans-serif;
+  line-height: 1.25;
+  color: #111;
+  page-break-after: avoid;
+}
+
+h1 {
+  font-size: 1.85rem;
+  border-bottom: 3px solid var(--accent);
+  padding-bottom: 0.35rem;
+  margin-top: 0;
+}
+
+h2 {
+  font-size: 1.4rem;
+  margin-top: 2.2rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.25rem;
+  page-break-before: auto;
+}
+
+h3 {
+  font-size: 1.15rem;
+  margin-top: 1.6rem;
+  color: #222;
+}
+
+h4 {
+  font-size: 1.05rem;
+  margin-top: 1.2rem;
+}
+
+p, li {
+  orphans: 3;
+  widows: 3;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+code, pre {
+  font-family: "IBM Plex Mono", "Source Code Pro", "DejaVu Sans Mono", "Noto Sans Mono", Consolas, monospace;
+  font-size: 0.84em;
+}
+
+code {
+  background: var(--code-bg);
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+}
+
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.85rem 1rem;
+  overflow-x: auto;
+  page-break-inside: avoid;
+  line-height: 1.4;
+}
+
+pre code {
+  background: transparent;
+  padding: 0;
+  font-size: 0.92em;
+}
+
+blockquote {
+  border-left: 3px solid var(--accent);
+  margin-left: 0;
+  padding: 0.2rem 0 0.2rem 1rem;
+  color: var(--muted);
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0 1.4rem;
+  font-size: 0.92em;
+  page-break-inside: avoid;
+}
+
+th, td {
+  border: 1px solid var(--border);
+  padding: 0.4rem 0.55rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: var(--table-head);
+  font-family: "IBM Plex Sans", "DejaVu Sans", sans-serif;
+  font-weight: 600;
+}
+
+tr:nth-child(even) td {
+  background: #fcfcfa;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2rem 0;
+}
+
+/* Pandoc title block */
+header#title-block-header {
+  margin-bottom: 2rem;
+}
+
+header#title-block-header .title {
+  margin-bottom: 0.25rem;
+}
+
+header#title-block-header .subtitle,
+header#title-block-header .author,
+header#title-block-header .date {
+  color: var(--muted);
+  font-family: "IBM Plex Sans", sans-serif;
+}
+
+#TOC {
+  background: #f3f6f4;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  margin: 1.5rem 0 2rem;
+  page-break-after: always;
+}
+
+#TOC ul {
+  padding-left: 1.2rem;
+}
+
+#TOC > ul {
+  margin: 0.5rem 0 0;
+}
+
+nav#TOC::before {
+  content: "Contents";
+  display: block;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+  color: var(--accent);
+}
+
+@media print {
+  body {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    background: #fff;
+    font-size: 10.5pt;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  h2 {
+    page-break-before: auto;
+  }
+
+  #TOC {
+    page-break-after: always;
+  }
+}
