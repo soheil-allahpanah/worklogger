@@ -7,8 +7,8 @@ use infrastructure::postgres::{
 use use_cases::{
     AuthenticateJwtUseCase, AuthenticateTokenUseCase, CreateTokenUseCase, CreateUserUseCase,
     CreateWorklogUseCase, DeleteWorklogUseCase, EditWorklogUseCase, ExportWorklogsUsecase,
-    FilterWorklogsUsecase, GetWorklogUseCase, JwtConfig, LoginUseCase, RefreshAccessTokenUseCase,
-    RevokeRefreshTokenUseCase,
+    FilterWorklogsUsecase, GetMeUseCase, GetWorklogUseCase, JwtConfig, LoginUseCase,
+    RefreshAccessTokenUseCase, RevokeRefreshTokenUseCase, TagStatsUseCase,
 };
 
 type WorklogRepo = Arc<PostgresWorklogRepository>;
@@ -27,9 +27,11 @@ struct Inner {
     edit_worklog: EditWorklogUseCase<WorklogRepo>,
     delete_worklog: DeleteWorklogUseCase<WorklogRepo>,
     filter_worklogs: FilterWorklogsUsecase<WorklogRepo>,
+    tag_stats: TagStatsUseCase<WorklogRepo>,
     export_worklogs: ExportWorklogsUsecase<WorklogRepo>,
     authenticate_token: AuthenticateTokenUseCase<TokenRepo, UserRepo>,
     authenticate_jwt: AuthenticateJwtUseCase<UserRepo>,
+    get_me: GetMeUseCase<UserRepo>,
     login: LoginUseCase<RefreshTokenRepo, UserRepo>,
     refresh_access_token: RefreshAccessTokenUseCase<RefreshTokenRepo, UserRepo>,
     revoke_refresh_token: RevokeRefreshTokenUseCase<RefreshTokenRepo>,
@@ -52,6 +54,7 @@ impl AppState {
                 edit_worklog: EditWorklogUseCase::new(Arc::clone(&worklog_repo)),
                 delete_worklog: DeleteWorklogUseCase::new(Arc::clone(&worklog_repo)),
                 filter_worklogs: FilterWorklogsUsecase::new(Arc::clone(&worklog_repo)),
+                tag_stats: TagStatsUseCase::new(Arc::clone(&worklog_repo)),
                 export_worklogs: ExportWorklogsUsecase::new(worklog_repo),
                 authenticate_token: AuthenticateTokenUseCase::new(
                     Arc::clone(&token_repo),
@@ -61,6 +64,7 @@ impl AppState {
                     Arc::clone(&user_repo),
                     jwt_config.clone(),
                 ),
+                get_me: GetMeUseCase::new(Arc::clone(&user_repo)),
                 login: LoginUseCase::new(
                     Arc::clone(&refresh_token_repo),
                     Arc::clone(&user_repo),
@@ -98,6 +102,10 @@ impl AppState {
         &self.inner.filter_worklogs
     }
 
+    pub fn tag_stats(&self) -> &TagStatsUseCase<WorklogRepo> {
+        &self.inner.tag_stats
+    }
+
     pub fn export_worklogs(&self) -> &ExportWorklogsUsecase<WorklogRepo> {
         &self.inner.export_worklogs
     }
@@ -108,6 +116,10 @@ impl AppState {
 
     pub fn authenticate_jwt(&self) -> &AuthenticateJwtUseCase<UserRepo> {
         &self.inner.authenticate_jwt
+    }
+
+    pub fn get_me(&self) -> &GetMeUseCase<UserRepo> {
+        &self.inner.get_me
     }
 
     pub fn login(&self) -> &LoginUseCase<RefreshTokenRepo, UserRepo> {

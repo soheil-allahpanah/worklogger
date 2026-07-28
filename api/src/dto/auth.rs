@@ -34,3 +34,20 @@ impl AuthTokensJson {
         }
     }
 }
+
+#[derive(Debug, Serialize)]
+pub struct MeJson {
+    pub id: String,
+    pub name: String,
+    pub email: Option<String>,
+}
+
+impl MeJson {
+    pub fn from_response(response: use_cases::MeResponse) -> Self {
+        Self {
+            id: response.id().to_owned(),
+            name: response.name().to_owned(),
+            email: response.email().map(str::to_owned),
+        }
+    }
+}

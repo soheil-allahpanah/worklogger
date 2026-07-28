@@ -32,3 +32,12 @@ pub struct WorklogFilterRow {
     pub total_duration_secs: i64,
     pub days_worked: i64,
 }
+
+/// Row shape for per-tag aggregates over a filtered worklog set.
+#[derive(Debug, FromRow)]
+pub struct WorklogTagStatRow {
+    pub tag: String,
+    pub duration_secs: i64,
+    pub days_worked: i64,
+    pub worklog_count: i64,
+}

@@ -1,13 +1,13 @@
 use domain::criteria::WorklogFilterCriteria;
 use domain::entities::Worklog;
-use domain::results::WorklogFilterResult;
+use domain::results::{WorklogFilterResult, WorklogTagStat, WorklogTagStatsResult};
 use domain::traits::{RepositoryError, RepositoryResult, WorklogRepository};
 use domain::value_objects::{UserId, WorklogId};
 use sqlx::PgPool;
 
 use super::filter_binds::FilterBinds;
 use super::mapper::{duration_secs, filter_row_to_worklog, row_to_worklog};
-use super::row::{WorklogFilterRow, WorklogRow};
+use super::row::{WorklogFilterRow, WorklogRow, WorklogTagStatRow};
 
 const WORKLOG_SELECT: &str = r#"
     SELECT
@@ -31,8 +31,9 @@ const WORKLOG_FILTER_WHERE: &str = r#"
       AND ($4::text[] IS NULL OR tags && $4)
       AND ($5::text[] IS NULL OR NOT (tags && $5))
       AND ($6::text IS NULL OR description ILIKE '%' || $6 || '%')
-      AND ($7::date IS NULL OR datetime::date >= $7)
-      AND ($8::date IS NULL OR datetime::date <= $8)
+      -- Calendar day in Asia/Tehran (matches create/display), not UTC.
+      AND ($7::date IS NULL OR (datetime AT TIME ZONE 'Asia/Tehran')::date >= $7)
+      AND ($8::date IS NULL OR (datetime AT TIME ZONE 'Asia/Tehran')::date <= $8)
       AND ($9::bigint IS NULL OR EXTRACT(EPOCH FROM duration)::bigint >= $9)
       AND ($10::bigint IS NULL OR EXTRACT(EPOCH FROM duration)::bigint <= $10)
 "#;
@@ -182,9 +183,9 @@ impl WorklogRepository for PostgresWorklogRepository {
         f.deleted_at,
         COUNT(*) OVER()::bigint AS total_count,
         COALESCE(SUM(f.duration_secs) OVER(), 0)::bigint AS total_duration_secs,
-        (SELECT COUNT(DISTINCT datetime::date) FROM filtered)::bigint AS days_worked
+        (SELECT COUNT(DISTINCT (datetime AT TIME ZONE 'Asia/Tehran')::date) FROM filtered)::bigint AS days_worked
     FROM filtered f
-    ORDER BY f.datetime DESC
+    ORDER BY f.datetime DESC, f.created_at DESC
     LIMIT $11
     OFFSET $12"
         ))
@@ -228,6 +229,69 @@ impl WorklogRepository for PostgresWorklogRepository {
             total_duration_secs,
             days_worked,
         })
+    }
+
+    async fn tag_stats(
+        &self,
+        criteria: &WorklogFilterCriteria,
+    ) -> RepositoryResult<WorklogTagStatsResult> {
+        let binds = FilterBinds::from(criteria);
+
+        // Same filter predicates as `filter`, then unnest tags and aggregate.
+        // Duration is attributed fully to each tag on a worklog (matches the
+        // previous client-side tag cloud behaviour).
+        let rows = sqlx::query_as::<_, WorklogTagStatRow>(&format!(
+            r#"
+            WITH filtered AS (
+                SELECT
+                    datetime,
+                    EXTRACT(EPOCH FROM duration)::bigint AS duration_secs,
+                    tags
+                FROM worklogs
+                {WORKLOG_FILTER_WHERE}
+            ),
+            unnested AS (
+                SELECT
+                    unnest(tags) AS tag,
+                    duration_secs,
+                    (datetime AT TIME ZONE 'Asia/Tehran')::date AS local_date
+                FROM filtered
+            )
+            SELECT
+                tag,
+                COALESCE(SUM(duration_secs), 0)::bigint AS duration_secs,
+                COUNT(DISTINCT local_date)::bigint AS days_worked,
+                COUNT(*)::bigint AS worklog_count
+            FROM unnested
+            GROUP BY tag
+            ORDER BY duration_secs DESC, tag ASC
+            "#
+        ))
+        .bind(binds.user_id)
+        .bind(binds.ids_in.as_deref())
+        .bind(binds.ids_not_in.as_deref())
+        .bind(binds.tags_in.as_deref())
+        .bind(binds.tags_not_in.as_deref())
+        .bind(binds.description_contains.as_deref())
+        .bind(binds.date_from)
+        .bind(binds.date_to)
+        .bind(binds.duration_from_secs)
+        .bind(binds.duration_to_secs)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|_| RepositoryError::QueryFailed)?;
+
+        let tags = rows
+            .into_iter()
+            .map(|row| WorklogTagStat {
+                tag: row.tag,
+                duration_secs: row.duration_secs.max(0) as u64,
+                days_worked: row.days_worked.max(0) as u64,
+                worklog_count: row.worklog_count.max(0) as u64,
+            })
+            .collect();
+
+        Ok(WorklogTagStatsResult { tags })
     }
 
     async fn delete(&self, user_id: UserId, id: WorklogId) -> RepositoryResult<()> {

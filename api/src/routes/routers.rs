@@ -11,11 +11,13 @@ use crate::state::AppState;
 
 pub fn router(state: AppState) -> Router {
     let protected = Router::new()
+        .route("/me", get(controllers::me))
         .route(
             "/worklogs",
             post(controllers::create).get(controllers::filter_query),
         )
         .route("/worklogs/filter", post(controllers::filter))
+        .route("/worklogs/tag-stats", post(controllers::tag_stats))
         .route(
             "/worklogs/export",
             get(controllers::export_query).post(controllers::export),

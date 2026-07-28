@@ -37,3 +37,16 @@ pub struct WorklogPageJson {
     pub page_size: u32,
     pub statistics: WorklogFilterStatisticsJson,
 }
+
+#[derive(Debug, Serialize)]
+pub struct TagStatJson {
+    pub tag: String,
+    pub duration_secs: u64,
+    pub days_worked: u64,
+    pub worklog_count: u64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TagStatsJson {
+    pub tags: Vec<TagStatJson>,
+}
