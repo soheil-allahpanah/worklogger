@@ -222,7 +222,7 @@ impl Widget for BorderedTable<'_> {
             return;
         }
 
-        let border = Style::default().fg(theme::BORDER);
+        let border = Style::default().fg(theme::BORDER).bg(theme::BG);
         let x = area.x;
         let y = area.y;
         let w = area.width;
@@ -242,6 +242,13 @@ impl Widget for BorderedTable<'_> {
         let visible = body_h as usize;
         let start = self.scroll_offset;
         let end = (start + visible).min(self.rows.len());
+        let row_bg = Style::default().bg(theme::BG);
+        for row_y in body_y..body_y + body_h {
+            for col_x in x..x + w {
+                buf[(col_x, row_y)].set_symbol(" ");
+                buf[(col_x, row_y)].set_style(row_bg);
+            }
+        }
 
         for (i, row) in self.rows[start..end].iter().enumerate() {
             let row_y = body_y + i as u16;

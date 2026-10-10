@@ -13,6 +13,7 @@ use std::io::{self, stdout, Stdout};
 use app::{run_terminal, App};
 use crossterm::{
     execute,
+    style::{Color as TermColor, ResetColor, SetBackgroundColor},
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use ratatui::prelude::*;
@@ -57,10 +58,21 @@ async fn wiringup() -> io::Result<App> {
     App::new(client).await
 }
 
+fn terminal_background() -> TermColor {
+    match theme::BG {
+        Color::Rgb(r, g, b) => TermColor::Rgb { r, g, b },
+        _ => TermColor::DarkGrey,
+    }
+}
+
 fn setup_terminal() -> io::Result<Terminal<CrosstermBackend<Stdout>>> {
     enable_raw_mode()?;
     let mut out = stdout();
-    execute!(out, EnterAlternateScreen)?;
+    execute!(
+        out,
+        EnterAlternateScreen,
+        SetBackgroundColor(terminal_background())
+    )?;
     let backend = CrosstermBackend::new(out);
     let mut terminal = Terminal::new(backend)?;
     terminal.hide_cursor()?;
@@ -69,7 +81,11 @@ fn setup_terminal() -> io::Result<Terminal<CrosstermBackend<Stdout>>> {
 
 fn restore_terminal(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> io::Result<()> {
     disable_raw_mode()?;
-    execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+    execute!(
+        terminal.backend_mut(),
+        ResetColor,
+        LeaveAlternateScreen
+    )?;
     terminal.show_cursor()?;
     Ok(())
 }

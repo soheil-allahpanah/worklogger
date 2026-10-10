@@ -15,6 +15,9 @@ use crate::dialogs::{add, delete, edit, open};
 use crate::theme;
 
 pub fn view(frame: &mut Frame, app: &mut App) {
+    // Paint every cell. Unstyled cells stay transparent and show the terminal background.
+    theme::fill_area(frame, frame.area(), theme::BG);
+
     if app.mode.is_modal() {
         draw_modal_screen(frame, app);
     } else {
